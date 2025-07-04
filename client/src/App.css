@@ -1,0 +1,483 @@
+/* Global styles */
+.App {
+  text-align: center;
+}
+
+/* Sidebar logo */
+.logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  margin: 16px;
+  border-radius: 6px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Ant Design overrides */
+.ant-layout-sider {
+  box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+}
+
+.ant-menu-item {
+  height: 48px !important;
+  line-height: 48px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.ant-menu-item-selected {
+  background-color: #e6f7ff !important;
+}
+
+/* Content area */
+.ant-layout-content {
+  background: #f5f5f5;
+}
+
+/* Card styling */
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Table styling */
+.ant-table {
+  background: #fff;
+  border-radius: 8px;
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+/* Button styling */
+.ant-btn-primary {
+  border-radius: 6px;
+}
+
+.ant-btn {
+  border-radius: 6px;
+}
+
+/* Modal styling */
+.ant-modal-content {
+  border-radius: 8px;
+}
+
+/* Statistics cards */
+.stats-card {
+  text-align: center;
+  padding: 24px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  margin-bottom: 16px;
+}
+
+.stats-card .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.stats-card .ant-statistic-content {
+  color: white;
+}
+
+/* POS specific styles */
+.pos-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.pos-product-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.pos-product-card:hover {
+  border-color: #1890ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.pos-cart {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #d9d9d9;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.pos-cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.pos-total {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+/* 📱 Mobile Desktop Mode & QR Scanner Optimization */
+/* Force desktop mode on mobile */
+@media screen and (max-width: 768px) {
+  /* Force desktop viewport */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Prevent zoom on input focus */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  input[type="number"], 
+  input[type="search"], 
+  textarea, 
+  select {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  /* Better touch targets */
+  .ant-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 🔧 ENHANCED: QR Scanner optimizations */
+  #qr-reader {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 300px !important;
+  }
+  
+  #qr-reader video {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    object-fit: cover !important;
+  }
+  
+  /* Better modal sizing on mobile */
+  .ant-modal {
+    margin: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+  
+  .ant-modal-content {
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+  
+  /* Warranty page mobile optimizations */
+  .warranty-serial-sidebar {
+    width: 100% !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .warranty-serial-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* Better table scrolling on mobile */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+  
+  .ant-table {
+    min-width: 800px;
+  }
+}
+
+/* iOS specific optimizations */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari specific styles */
+  input, textarea, select {
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+  
+  /* Prevent zoom on input focus */
+  input:focus, textarea:focus, select:focus {
+    font-size: 16px !important;
+  }
+  
+  /* Better touch handling */
+  .ant-btn, .ant-card, .ant-table-row {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 🔧 ENHANCED: iOS QR Scanner specific optimizations */
+  #qr-reader {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  #qr-reader video {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* Android specific optimizations */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  /* Android Chrome specific styles */
+  input[type="text"], input[type="email"], input[type="password"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  /* 🔧 ENHANCED: Android QR Scanner optimizations */
+  #qr-reader {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* 🔧 ENHANCED: QR Scanner specific styles */
+.qr-scanner-container {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.qr-scanner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid #52c41a;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.qr-scanner-overlay::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  border: 2px dashed #52c41a;
+  border-radius: 4px;
+  animation: qr-scanner-pulse 2s infinite;
+}
+
+@keyframes qr-scanner-pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* 🔧 ENHANCED: Camera permission styles */
+.camera-permission-container {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.camera-permission-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  animation: camera-bounce 2s infinite;
+}
+
+@keyframes camera-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+/* 🔧 ENHANCED: QR Scanner loading states */
+.qr-scanner-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #999;
+}
+
+.qr-scanner-loading .anticon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: camera-rotate 2s infinite linear;
+}
+
+@keyframes camera-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 🔧 ENHANCED: QR Scanner error states */
+.qr-scanner-error {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+/* 🔧 ENHANCED: QR Scanner success states */
+.qr-scanner-success {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+/* 🔧 ENHANCED: Mobile-specific QR Scanner improvements */
+@media screen and (max-width: 768px) {
+  /* Better QR scanner container on mobile */
+  #qr-reader {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  /* Improve video element on mobile */
+  #qr-reader video {
+    border-radius: 8px !important;
+  }
+  
+  /* Better modal for QR scanner on mobile */
+  .ant-modal.qr-scanner-modal {
+    margin: 8px !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+  
+  .ant-modal.qr-scanner-modal .ant-modal-content {
+    border-radius: 12px !important;
+  }
+  
+  /* Better buttons for mobile */
+  .qr-scanner-modal .ant-btn {
+    height: 48px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* 🔧 ENHANCED: High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  #qr-reader {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* 🔧 ENHANCED: Dark mode support for QR scanner */
+@media (prefers-color-scheme: dark) {
+  #qr-reader {
+    background: #1f1f1f;
+    border-color: #52c41a;
+  }
+  
+  .qr-scanner-loading {
+    color: #d9d9d9;
+  }
+}
+
+/* 🔧 ENHANCED: Accessibility improvements */
+.qr-scanner-container:focus-within {
+  outline: 2px solid #1890ff;
+  outline-offset: 2px;
+}
+
+/* 🔧 ENHANCED: Performance optimizations */
+.qr-scanner-container {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+#qr-reader video {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    position: fixed !important;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    z-index: 100;
+  }
+  
+  .ant-layout-content {
+    margin-left: 0 !important;
+  }
+  
+  .pos-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  
+  /* Force desktop layout on mobile */
+  .warranty-page-container {
+    min-width: 1024px;
+    transform: scale(0.5);
+    transform-origin: top left;
+    width: 200%;
+    height: 200%;
+  }
+} 

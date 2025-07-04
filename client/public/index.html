@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <!-- Force desktop mode on mobile devices -->
+    <meta name="viewport" content="width=1024, initial-scale=0.5, maximum-scale=2.0, minimum-scale=0.3, user-scalable=yes" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Hệ thống POS đơn giản" />
+    
+    <!-- Mobile optimization -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Camera permissions policy -->
+    <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(self)" />
+    
+    <!-- Feature policy for older browsers -->
+    <meta http-equiv="Feature-Policy" content="camera 'self'; microphone 'self'" />
+    
+    <!-- Security headers for camera access -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; media-src 'self' blob: data: https:; camera 'self';" />
+    
+    <title>POS System - Quản lý bán hàng</title>
+  </head>
+  <body>
+    <noscript>Bạn cần bật JavaScript để chạy ứng dụng này.</noscript>
+    <div id="root"></div>
+  </body>
+</html> 
