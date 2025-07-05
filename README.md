@@ -1,214 +1,213 @@
-# 🏪 POS System - Hệ thống quản lý bán hàng
+# 🏪 Hệ thống POS - Quản lý Bán hàng và Kho
 
-Hệ thống POS (Point of Sale) đơn giản được xây dựng với React + Cloudflare Workers + D1, hoàn toàn miễn phí và không cần server.
+Hệ thống POS (Point of Sale) hoàn chỉnh được xây dựng với React.js frontend và Cloudflare Workers backend, tích hợp AI cho quản lý bảo hành thông minh.
+
+## 🚀 Demo
+
+- **Frontend**: https://b44f1239.pos-frontend-e1q.pages.dev
+- **Backend API**: https://pos-backend.bangachieu2.workers.dev
 
 ## ✨ Tính năng chính
 
-- 🛒 **Bán hàng (POS)**: Giao diện bán hàng trực quan, hỗ trợ barcode
-- 📦 **Quản lý sản phẩm**: Thêm/sửa/xóa sản phẩm, quản lý tồn kho
-- 📋 **Quản lý đơn hàng**: Theo dõi đơn hàng, in hóa đơn
-- 📊 **Báo cáo**: Thống kê doanh thu, tồn kho, sản phẩm bán chạy
-- 🖨️ **In hóa đơn**: Hỗ trợ in hóa đơn trực tiếp từ browser
-- 📱 **Responsive**: Hoạt động tốt trên mọi thiết bị
-- 🌐 **100% Cloudflare**: Miễn phí, tốc độ cao, không cần server
+### 📊 Quản lý Bán hàng
+- **POS Interface**: Giao diện bán hàng trực quan
+- **Quản lý Đơn hàng**: Tạo, sửa, xóa đơn hàng
+- **In hóa đơn**: Tự động tạo và in hóa đơn
+- **Quét mã QR**: Tích hợp quét mã QR sản phẩm
+
+### 🏪 Quản lý Kho
+- **Quản lý Sản phẩm**: CRUD sản phẩm với thông tin chi tiết
+- **Quản lý Tồn kho**: Theo dõi số lượng tồn kho real-time
+- **Quản lý Nhà cung cấp**: Quản lý thông tin nhà cung cấp
+- **Serial Number Management**: Quản lý số seri sản phẩm
+
+### 🔍 Tìm kiếm Serial thông minh
+- **Serial Search Sidebar**: Thanh tìm kiếm serial chuyên dụng
+- **Real-time Search**: Tìm kiếm real-time với suggestions
+- **Card-based Results**: Hiển thị kết quả dạng card với đầy đủ thông tin
+
+### 🛠️ Quản lý Bảo hành AI
+- **AI Auto-fill**: Tự động điền thông tin bảo hành khi nhập serial
+- **Smart Suggestions**: Gợi ý thông minh khi tìm kiếm
+- **Warranty Claims**: Quản lý yêu cầu bảo hành
+- **Customer Integration**: Tích hợp thông tin khách hàng
+
+### 👥 Quản lý Khách hàng
+- **Customer Database**: Cơ sở dữ liệu khách hàng
+- **Purchase History**: Lịch sử mua hàng
+- **Debt Management**: Quản lý công nợ
+- **Customer Quick Add**: Thêm khách hàng nhanh
+
+### 💰 Quản lý Tài chính
+- **Financial Transactions**: Quản lý giao dịch tài chính
+- **Debt Tracking**: Theo dõi công nợ
+- **Revenue Reports**: Báo cáo doanh thu
+- **Payment Methods**: Đa dạng phương thức thanh toán
+
+### 📈 Báo cáo và Thống kê
+- **Sales Reports**: Báo cáo bán hàng
+- **Inventory Reports**: Báo cáo tồn kho
+- **Financial Reports**: Báo cáo tài chính
+- **Real-time Analytics**: Thống kê real-time
 
 ## 🛠️ Công nghệ sử dụng
 
-### Backend
-- Cloudflare Workers (Serverless)
-- Cloudflare D1 (SQLite Database)
-- Hono Framework (Fast Web Framework)
-
 ### Frontend
-- React 18
-- Ant Design UI
-- Cloudflare Pages (Static Hosting)
+- **React.js 18**: Framework chính
+- **Ant Design**: UI Component Library
+- **React Router**: Routing
+- **Axios**: HTTP Client
+- **Moment.js**: Date handling
+- **Recharts**: Data visualization
+- **Tailwind CSS**: Styling
 
-## 📁 Cấu trúc project
+### Backend
+- **Cloudflare Workers**: Serverless platform
+- **Cloudflare D1**: SQLite database
+- **Node.js**: Runtime environment
+- **Express.js**: Web framework
 
-```
-kho/
-├── server/                    # Cloudflare Workers
-│   ├── src/index.js          # Main worker file
-│   ├── migrations/           # D1 database migrations
-│   ├── wrangler.toml         # Cloudflare config
-│   └── package.json
-├── client/                    # React Frontend
-│   ├── src/
-│   │   ├── pages/            # Main pages
-│   │   ├── services/         # API services
-│   │   └── utils/            # Utilities
-│   └── package.json
-├── deploy.sh                  # Auto deploy script
-└── README.md
-```
+### Deployment
+- **Cloudflare Pages**: Frontend hosting
+- **Cloudflare Workers**: Backend hosting
+- **Cloudflare D1**: Database hosting
 
-## 🚀 Quick Start (Cloudflare)
+## 📦 Cài đặt và Chạy
 
-### 📋 Yêu cầu
-- Tài khoản Cloudflare (miễn phí)
+### Yêu cầu hệ thống
 - Node.js 18+
-- Git
+- npm hoặc yarn
+- Wrangler CLI
 
-### 1. Cài đặt Wrangler CLI
+### 1. Clone repository
 ```bash
-npm install -g wrangler
-wrangler login
+git clone https://github.com/bangachieu2/kho2.git
+cd kho2
 ```
 
-### 2. Setup Backend
+### 2. Cài đặt dependencies
 ```bash
-cd server
+# Root dependencies
 npm install
 
-# Tạo D1 database
-wrangler d1 create pos-db
-```
-
-### 3. Cập nhật Database ID
-Sau khi tạo database, copy `database_id` và cập nhật trong `server/wrangler.toml`:
-```toml
-database_id = "paste-your-database-id-here"
-```
-
-### 4. Deploy Database & Backend
-```bash
-# Chạy migrations
-wrangler d1 migrations apply pos-db
-wrangler d1 execute pos-db --file=./migrations/0002_seed_data.sql
-
-# Deploy worker
-npm run deploy
-```
-
-### 5. Deploy Frontend
-```bash
-cd ../client
+# Frontend dependencies
+cd client
 npm install
-npm run build
-npx wrangler pages publish build --project-name pos-frontend
-```
+cd ..
 
-### 6. Cấu hình API URL
-Trong Cloudflare Pages dashboard:
-- Vào Settings > Environment variables
-- Thêm: `REACT_APP_API_URL` = `https://your-worker.workers.dev/api`
-
-## 🔧 Local Development
-
-### Backend (Workers)
-```bash
+# Backend dependencies
 cd server
-npm run dev
-# Chạy tại: http://localhost:8787
+npm install
+cd ..
 ```
 
-### Frontend (React)
+### 3. Chạy development
+
+#### Frontend
 ```bash
 cd client
 npm start
-# Chạy tại: http://localhost:3000
 ```
 
-## 💰 Chi phí (100% MIỄN PHÍ)
-
-- **Cloudflare Workers**: 100K requests/day
-- **D1 Database**: 5GB storage + 5M reads/day
-- **Pages**: Unlimited static hosting
-- **Bandwidth**: 100GB/month
-- **Custom Domain**: Miễn phí với Cloudflare DNS
-
-## 🌐 Production URLs
-
-Sau khi deploy, bạn sẽ có:
-- **Backend API**: `https://your-worker.workers.dev`
-- **Frontend**: `https://your-pages.pages.dev`
-
-## 📚 API Endpoints
-
-```
-GET    /api/health              # Health check
-GET    /api/products            # Lấy danh sách sản phẩm
-POST   /api/products            # Tạo sản phẩm mới
-PUT    /api/products/:id        # Cập nhật sản phẩm
-DELETE /api/products/:id        # Xóa sản phẩm
-GET    /api/orders              # Lấy danh sách đơn hàng
-POST   /api/orders              # Tạo đơn hàng mới
-GET    /api/orders/:id          # Chi tiết đơn hàng
-GET    /api/orders/stats/summary # Thống kê
-```
-
-## 🚀 Auto Deploy Script
-
-Chạy script tự động deploy cả frontend và backend:
+#### Backend
 ```bash
-chmod +x deploy.sh
-./deploy.sh
+cd server
+wrangler dev
 ```
 
-## 🔗 Liên kết nhanh
+### 4. Build và Deploy
 
-- [📖 Hướng dẫn deploy chi tiết](server/CLOUDFLARE_DEPLOY.md)
-- [🌐 Cloudflare Dashboard](https://dash.cloudflare.com)
-- [📚 Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
-- [🗄️ D1 Database Docs](https://developers.cloudflare.com/d1/)
-
-## ✅ Tính năng hoàn thành
-
-- ✅ **Không cần đăng nhập** - ai có link là dùng được
-- ✅ **Database thật** - Cloudflare D1 (SQLite)
-- ✅ **API RESTful** - đầy đủ endpoints
-- ✅ **Responsive** - hoạt động tốt trên mobile
-- ✅ **Tiếng Việt** - giao diện hoàn toàn tiếng Việt
-- ✅ **In hóa đơn** - hỗ trợ print qua browser
-- ✅ **Tự động cập nhật tồn kho** - khi tạo đơn hàng
-- ✅ **Edge Computing** - tốc độ nhanh toàn cầu
-
-## 🔧 Tùy chỉnh
-
-### Thêm Custom Domain
-1. Vào Cloudflare Dashboard
-2. Workers & Pages > your-worker > Triggers
-3. Thêm Custom Domain
-
-### Cấu hình CORS
-Chỉnh sửa CORS trong `server/src/index.js`:
-```javascript
-origin: ['http://localhost:3000', 'https://yourdomain.com']
+#### Frontend
+```bash
+cd client
+npm run deploy
 ```
 
-## 🆘 Hỗ trợ
+#### Backend
+```bash
+cd server
+wrangler deploy
+```
 
-**Gặp vấn đề?**
-1. Kiểm tra `database_id` trong `wrangler.toml`
-2. Đảm bảo đã chạy migrations: `wrangler d1 migrations apply pos-db`
-3. Kiểm tra CORS settings nếu có lỗi API
-4. Tạo issue với logs chi tiết
+## 🗄️ Cấu trúc Database
 
-## 📸 Demo
+### Bảng chính
+- **products**: Sản phẩm
+- **customers**: Khách hàng
+- **orders**: Đơn hàng
+- **order_items**: Chi tiết đơn hàng
+- **serials**: Số seri sản phẩm
+- **warranty_claims**: Yêu cầu bảo hành
+- **financial_transactions**: Giao dịch tài chính
+- **suppliers**: Nhà cung cấp
+- **users**: Người dùng
 
-### Trang bán hàng (POS)
-- Grid sản phẩm với tìm kiếm barcode
-- Giỏ hàng real-time
-- Thanh toán và in hóa đơn
+## 🔧 Cấu hình
 
-### Quản lý sản phẩm
-- CRUD đầy đủ với validation
-- Thống kê tồn kho real-time
-- Search và filter nâng cao
+### Environment Variables
+```env
+# Frontend (.env)
+REACT_APP_API_URL=https://pos-backend.bangachieu2.workers.dev
 
-### Báo cáo
-- Dashboard với KPIs
-- Top sản phẩm bán chạy
-- Cảnh báo sắp hết hàng
+# Backend (Cloudflare Workers)
+JWT_SECRET=your-secret-key
+ADMIN_PASSWORD=admin123
+```
 
----
+### Wrangler Configuration
+```toml
+# server/wrangler.toml
+name = "pos-backend"
+main = "src/index.js"
+compatibility_date = "2023-12-01"
 
-⭐ **Ưu điểm Cloudflare:**
-- 🚀 Tốc độ nhanh (Edge Computing)  
-- 💰 100% miễn phí
-- 🛡️ Bảo mật cao
-- 🌍 Phủ sóng toàn cầu
-- 🔧 Không cần quản lý server
+[[d1_databases]]
+binding = "DB"
+database_name = "pos-db"
+database_id = "your-database-id"
+```
 
-**Perfect cho:** Cửa hàng nhỏ, startup, test ideas, sharing qua link! 
+## 🚀 Deployment URLs
+
+- **Frontend**: https://b44f1239.pos-frontend-e1q.pages.dev
+- **Backend**: https://pos-backend.bangachieu2.workers.dev
+
+## 📱 Tính năng Mobile
+
+- Responsive design
+- Touch-friendly interface
+- QR code scanning
+- Offline capability (PWA ready)
+
+## 🔒 Bảo mật
+
+- JWT Authentication
+- Role-based access control
+- Input validation
+- SQL injection protection
+- XSS protection
+
+## 🤝 Đóng góp
+
+1. Fork repository
+2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Tạo Pull Request
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## 📞 Liên hệ
+
+- **Developer**: bangachieu2
+- **Email**: your-email@example.com
+- **Project Link**: https://github.com/bangachieu2/kho2
+
+## 🙏 Acknowledgments
+
+- [Ant Design](https://ant.design/) - UI Components
+- [Cloudflare](https://cloudflare.com/) - Hosting & Infrastructure
+- [React.js](https://reactjs.org/) - Frontend Framework
+- [Node.js](https://nodejs.org/) - Runtime Environment 
