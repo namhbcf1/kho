@@ -1,0 +1,65 @@
+{
+  "name": "pos-system",
+  "version": "1.0.0",
+  "description": "Modern POS System with Cloudflare Deployment",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd client && npm start",
+    "dev:backend": "cd server && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd client && npm run build",
+    "build:backend": "cd server && npm run build",
+    "deploy": "npm run deploy:backend && npm run deploy:frontend",
+    "deploy:backend": "cd server && wrangler deploy",
+    "deploy:frontend": "cd client && npm run deploy",
+    "setup:cloudflare": "npm run setup:d1 && npm run setup:kv && npm run setup:r2",
+    "setup:d1": "wrangler d1 create pos-database",
+    "setup:kv": "wrangler kv:namespace create CACHE",
+    "setup:r2": "wrangler r2 bucket create pos-storage",
+    "migrate": "cd server && wrangler d1 migrations apply pos-database",
+    "seed": "cd server && wrangler d1 execute pos-database --file=./migrations/seed.sql",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd client && npm test",
+    "test:backend": "cd server && npm test",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd client && npm run lint",
+    "lint:backend": "cd server && npm run lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "clean": "npm run clean:frontend && npm run clean:backend",
+    "clean:frontend": "cd client && rm -rf build node_modules",
+    "clean:backend": "cd server && rm -rf dist node_modules"
+  },
+  "keywords": [
+    "pos",
+    "point-of-sale",
+    "cloudflare",
+    "workers",
+    "pages",
+    "d1",
+    "react",
+    "nodejs"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.1.0",
+    "wrangler": "^3.22.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/pos-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/pos-system/issues"
+  },
+  "homepage": "https://pos-frontend.pages.dev",
+  "dependencies": {
+    "axios": "^1.10.0"
+  }
+}

@@ -1,0 +1,246 @@
+/* 🎨 WarrantyPage CSS Module - Thay thế inline styles để tối ưu performance */
+
+.warrantyContainer {
+  padding: 24px;
+}
+
+.pageTitle {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.titleIcon {
+  margin-right: 8px;
+  color: #52c41a;
+}
+
+.statsCards {
+  margin-bottom: 24px;
+}
+
+.serialNumber {
+  font-size: 16px;
+  color: #1890ff;
+  font-weight: bold;
+}
+
+.supplierInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.supplierName {
+  font-weight: bold;
+}
+
+.supplierCode {
+  font-size: 12px;
+  color: #666;
+}
+
+.timeInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.importTime {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.saleTime {
+  font-size: 12px;
+  color: #52c41a;
+}
+
+.warrantyInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.warrantyPeriod {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.warrantyDate {
+  font-size: 11px;
+  color: #666;
+}
+
+.warrantyProvider {
+  font-size: 11px;
+  color: #1890ff;
+  margin-top: 2px;
+}
+
+.warrantyStatus {
+  margin-top: 4px;
+}
+
+.searchContainer {
+  margin-bottom: 16px;
+}
+
+.alertInfo {
+  height: 100%;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.drawerTitle {
+  display: flex;
+  align-items: center;
+}
+
+.drawerIcon {
+  margin-right: 8px;
+}
+
+.productInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.productName {
+  font-weight: bold;
+}
+
+.productSku {
+  color: #666;
+}
+
+.customerInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.customerName {
+  font-weight: bold;
+}
+
+.customerPhone {
+  color: #666;
+}
+
+.notesCard {
+  margin-top: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .warrantyContainer {
+    padding: 16px;
+  }
+  
+  .statsCards {
+    margin-bottom: 16px;
+  }
+  
+  .searchContainer {
+    margin-bottom: 12px;
+  }
+}
+
+/* Performance Optimizations */
+.tableContainer {
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.fixedColumn {
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 1;
+}
+
+.actionColumn {
+  position: sticky;
+  right: 0;
+  background: white;
+  z-index: 1;
+}
+
+/* Clickable Elements - Minimum 44x44px for mobile */
+.clickableButton {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconButton {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px;
+}
+
+/* Touch-friendly spacing */
+.actionButtons button {
+  min-height: 44px;
+  min-width: 44px;
+  margin: 2px;
+}
+
+/* Loading states */
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Animations for better UX */
+.fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Accessibility improvements */
+.screenReaderOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .supplierCode,
+  .warrantyDate,
+  .warrantyProvider {
+    color: #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .fadeIn {
+    animation: none;
+  }
+  
+  .tableContainer {
+    scroll-behavior: auto;
+  }
+} 
