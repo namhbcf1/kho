@@ -152,6 +152,7 @@ export const warrantyAPI = {
 export const serialsAPI = {
   search: (query, params = {}) => api.get('/serials/search', { params: { q: query, ...params } }),
   getList: (params = {}) => api.get('/serials/list', { params }),
+  getByProduct: (productId, params = {}) => api.get(`/products/${productId}/serials`, { params }),
   getWarrantyInfo: (serialNumber) => api.get(`/serials/${serialNumber}/warranty`),
   addSerials: (productId, serialsData) => api.post(`/products/${productId}/serials`, { serials: serialsData }),
   updateSerial: (id, data) => api.put(`/serials/${id}`, data),

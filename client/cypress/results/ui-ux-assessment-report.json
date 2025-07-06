@@ -1,0 +1,166 @@
+{
+  "loadTimes": [
+    {
+      "page": "/pos",
+      "loadTime": 740,
+      "acceptable": true,
+      "timestamp": "2025-07-05T12:38:53.529Z"
+    },
+    {
+      "page": "/products",
+      "loadTime": 2045,
+      "acceptable": true,
+      "timestamp": "2025-07-05T12:38:54.833Z"
+    },
+    {
+      "page": "/customers",
+      "loadTime": 3280,
+      "acceptable": false,
+      "timestamp": "2025-07-05T12:38:56.069Z"
+    },
+    {
+      "page": "/orders",
+      "loadTime": 4412,
+      "acceptable": false,
+      "timestamp": "2025-07-05T12:38:57.201Z"
+    },
+    {
+      "page": "/reports",
+      "loadTime": 5590,
+      "acceptable": false,
+      "timestamp": "2025-07-05T12:38:58.380Z"
+    }
+  ],
+  "interactions": [
+    {
+      "type": "button_click",
+      "responseTime": 1453,
+      "responsive": false,
+      "timestamp": "2025-07-05T12:39:03.183Z"
+    }
+  ],
+  "animations": [
+    {
+      "type": "modal_open",
+      "smooth": true,
+      "duration": "0.3s",
+      "timestamp": "2025-07-05T12:37:32.217Z"
+    },
+    {
+      "type": "loading_state",
+      "visible": true,
+      "responsive": true,
+      "timestamp": "2025-07-05T12:37:36.893Z"
+    }
+  ],
+  "responsiveness": [
+    {
+      "device": "iPad",
+      "width": 768,
+      "height": 1024,
+      "responsive": true,
+      "multiColumn": true,
+      "timestamp": "2025-07-05T12:37:53.030Z"
+    },
+    {
+      "device": "iPad Landscape",
+      "width": 1024,
+      "height": 768,
+      "responsive": true,
+      "multiColumn": true,
+      "timestamp": "2025-07-05T12:37:53.031Z"
+    },
+    {
+      "device": "Laptop",
+      "width": 1366,
+      "height": 768,
+      "responsive": true,
+      "multiColumn": true,
+      "timestamp": "2025-07-05T12:37:53.033Z"
+    },
+    {
+      "device": "Desktop",
+      "width": 1920,
+      "height": 1080,
+      "responsive": true,
+      "multiColumn": true,
+      "timestamp": "2025-07-05T12:37:53.036Z"
+    }
+  ],
+  "accessibility": [
+    {
+      "test": "screen_reader",
+      "passed": true,
+      "timestamp": "2025-07-05T12:38:03.551Z"
+    }
+  ],
+  "visualElements": [
+    {
+      "element": "primary_button",
+      "color": "rgb(0, 82, 204)",
+      "consistent": true,
+      "timestamp": "2025-07-05T12:37:22.017Z"
+    },
+    {
+      "element": "heading",
+      "fontSize": "24px",
+      "readable": true,
+      "timestamp": "2025-07-05T12:37:25.821Z"
+    },
+    {
+      "test": "visual_hierarchy",
+      "passed": true,
+      "timestamp": "2025-07-05T12:39:06.218Z"
+    },
+    {
+      "test": "micro_interactions",
+      "passed": true,
+      "timestamp": "2025-07-05T12:39:19.866Z"
+    }
+  ],
+  "userFlow": [
+    {
+      "flow": "pos_transaction",
+      "duration": 4,
+      "steps": 5,
+      "completed": true,
+      "timestamp": "2025-07-05T12:38:19.766Z"
+    },
+    {
+      "flow": "error_recovery",
+      "helpful": true,
+      "clear": true,
+      "timestamp": "2025-07-05T12:38:37.510Z"
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "performance",
+      "priority": "high",
+      "issue": "Slow page load times",
+      "recommendation": "Implement code splitting and lazy loading",
+      "impact": "Improve user retention and satisfaction"
+    },
+    {
+      "type": "performance",
+      "priority": "medium",
+      "issue": "3 pages load slowly",
+      "recommendation": "Optimize images and reduce bundle size",
+      "impact": "Better user experience on slow connections"
+    },
+    {
+      "type": "enhancement",
+      "priority": "low",
+      "issue": "UI can be more modern",
+      "recommendation": "Add subtle animations and improve visual hierarchy",
+      "impact": "More engaging user experience"
+    },
+    {
+      "type": "enhancement",
+      "priority": "medium",
+      "issue": "User feedback could be improved",
+      "recommendation": "Add toast notifications and loading states",
+      "impact": "Better user understanding of system state"
+    }
+  ]
+}

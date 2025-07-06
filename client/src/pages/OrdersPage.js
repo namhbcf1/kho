@@ -17,7 +17,8 @@ import {
 import {
   EyeOutlined,
   SearchOutlined,
-  PrinterOutlined
+  PrinterOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 
 import { ordersAPI } from '../services/api';

@@ -418,6 +418,7 @@ const SuppliersPage = () => {
               icon={<EyeOutlined />}
               onClick={() => showSupplierDetail(record)}
               style={{ padding: '2px 4px' }}
+              data-testid="view-supplier-btn"
             />
           </Tooltip>
           <Tooltip title="Xem sản phẩm đã cung cấp">
@@ -427,6 +428,7 @@ const SuppliersPage = () => {
               icon={<ShopOutlined />}
               onClick={() => showSupplierProducts(record)}
               style={{ padding: '2px 4px', color: '#52c41a' }}
+              data-testid="view-products-btn"
             />
           </Tooltip>
           <Tooltip title="Chỉnh sửa">
@@ -436,6 +438,7 @@ const SuppliersPage = () => {
               icon={<EditOutlined />}
               onClick={() => showModal(record)}
               style={{ padding: '2px 4px', color: '#1890ff' }}
+              data-testid="edit-supplier-btn"
             />
           </Tooltip>
           <Popconfirm
@@ -452,6 +455,7 @@ const SuppliersPage = () => {
                 size="small"
                 icon={<DeleteOutlined />}
                 style={{ padding: '2px 4px' }}
+                data-testid="delete-supplier-btn"
               />
             </Tooltip>
           </Popconfirm>
@@ -528,6 +532,7 @@ const SuppliersPage = () => {
               onClick={() => showModal()}
               size="middle"
               block
+              data-testid="add-supplier-btn"
             >
               Thêm nhà cung cấp
             </Button>

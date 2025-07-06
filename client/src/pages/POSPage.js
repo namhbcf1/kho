@@ -1,530 +1,904 @@
 import React, { useState, useEffect } from 'react';
 import { 
+  Card, 
   Row, 
   Col, 
-  Card, 
-  Input, 
   Button, 
+  Input, 
+  Space, 
   List, 
   Typography, 
   message, 
   Modal,
   Form,
   InputNumber,
-  Space,
+  Select, 
   Tag,
-  Divider,
+  Badge, 
   Spin,
   Table,
   Radio,
-  motion,
-  Skeleton
+  Divider,
+  Empty,
+  Alert
 } from 'antd';
 import { 
+  ShoppingCartOutlined, 
   PlusOutlined, 
   MinusOutlined, 
   DeleteOutlined,
-  ShoppingCartOutlined,
   PrinterOutlined,
   SearchOutlined,
   ShoppingOutlined,
-  UserOutlined
+  ShopOutlined,
+  UserOutlined,
+  BarcodeOutlined,
+  ClearOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { toast } from 'sonner';
 
-import { productsAPI, ordersAPI, customersAPI } from '../services/api';
-import { formatCurrency } from '../utils/format';
+// Import API functions
+import { 
+  productsAPI, 
+  customersAPI, 
+  ordersAPI, 
+  serialsAPI 
+} from '../services/api';
+
+// Import components
 import CartList from '../components/CartList';
-import SerialSelectModal from '../components/SerialSelectModal';
 import CustomerSelectModal from '../components/CustomerSelectModal';
-import ProductList from '../components/ProductList';
 import OrderPrintModal from '../components/OrderPrintModal';
-import OrderFormModal from '../components/OrderFormModal';
-import CustomerQuickAddModal from '../components/CustomerQuickAddModal';
+import SerialSelectModal from '../components/SerialSelectModal';
+import AllProductsSerialModal from '../components/AllProductsSerialModal';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 const { Search } = Input;
 
-const orderSchema = z.object({
-  customer_id: z.number().int().positive().optional().nullable(),
-  customer_name: z.string().optional(),
-  customer_phone: z.string().optional(),
-  customer_email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'ewallet']).optional(),
-  notes: z.string().optional(),
+// Validation schemas
+const checkoutSchema = z.object({
+  paymentMethod: z.enum(['cash', 'card', 'transfer']),
+  receivedAmount: z.number().min(0),
+  discount: z.number().min(0).max(100),
+  note: z.string().optional()
 });
 
-function POSPage() {
+const POSPage = () => {
+  // State management
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [orderModalVisible, setOrderModalVisible] = useState(false);
-  const [customerModalVisible, setCustomerModalVisible] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [serialModalVisible, setSerialModalVisible] = useState(false);
-  const [selectedProductForSerial, setSelectedProductForSerial] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
   const [availableSerials, setAvailableSerials] = useState([]);
   const [selectedSerials, setSelectedSerials] = useState([]);
+  
+  // Modal states
+  const [customerModalVisible, setCustomerModalVisible] = useState(false);
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [printModalVisible, setPrintModalVisible] = useState(false);
-  const [printOrder, setPrintOrder] = useState(null);
-  const [customerQuickAddVisible, setCustomerQuickAddVisible] = useState(false);
-  const [customerQuickAddLoading, setCustomerQuickAddLoading] = useState(false);
-
-  const { control, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm({
-    resolver: zodResolver(orderSchema),
+  const [currentOrder, setCurrentOrder] = useState(null);
+  const [serialSelectModalVisible, setSerialSelectModalVisible] = useState(false);
+  const [selectedProductForSerial, setSelectedProductForSerial] = useState(null);
+  const [allProductsModalVisible, setAllProductsModalVisible] = useState(false);
+  
+  // Form states
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [receivedAmount, setReceivedAmount] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [note, setNote] = useState('');
+  
+  // Form hooks
+  const [form] = Form.useForm();
+  const [checkoutForm] = Form.useForm();
+  
+  // React Hook Form
+  const { control, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      customer_id: null,
-      customer_name: '',
-      customer_phone: '',
-      customer_email: '',
-      payment_method: 'cash',
-      notes: '',
+      paymentMethod: 'cash',
+      receivedAmount: 0,
+      discount: 0,
+      note: ''
     }
   });
 
-  const customerPhoneWatch = watch('customer_phone');
-
+  // Load initial data
   useEffect(() => {
-    fetchProducts();
-    fetchCustomers();
+    loadProducts();
+    loadCustomers();
   }, []);
 
-  useEffect(() => {
-    if (selectedCustomer) {
-      setValue('customer_id', selectedCustomer.id);
-      setValue('customer_name', selectedCustomer.name);
-      setValue('customer_phone', selectedCustomer.phone);
-      setValue('customer_email', selectedCustomer.email || '');
-    } else {
-      setValue('customer_id', null);
-    }
-  }, [selectedCustomer, setValue]);
-
-  const fetchCustomers = async (searchQuery = '') => {
-    try {
-      const response = await customersAPI.getAll({ phone: searchQuery, name: searchQuery });
-      if (
-        response.data.success) {
-        setCustomers(response.data.data || []);
-        setFilteredCustomers(response.data.data || []);
-      } else {
-        setCustomers([]);
-        toast.error('Lỗi khi lấy danh sách khách hàng: ' + response.data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      setCustomers([]);
-      toast.error('Lỗi kết nối khi lấy danh sách khách hàng.');
-    }
-  };
-
-  const handleCustomerSearch = (value) => {
-    const filtered = customers.filter(customer =>
-      customer.name.toLowerCase().includes(value.toLowerCase()) ||
-      customer.phone?.includes(value)
-    );
-    setFilteredCustomers(filtered);
-  };
-
-  const selectCustomer = (customer) => {
-    setSelectedCustomer(customer);
-    setCustomerModalVisible(false);
-  };
-
-  const clearSelectedCustomer = () => {
-    setSelectedCustomer(null);
-    setValue('customer_id', null);
-    setValue('customer_name', '');
-    setValue('customer_phone', '');
-    setValue('customer_email', '');
-  };
-
-  const fetchProducts = async () => {
+  // Load products from API
+  const loadProducts = async () => {
     try {
       setLoading(true);
-      const response = await productsAPI.getAll();
-      if (response.data.success) {
-        setProducts(response.data.data || []);
-        setFilteredProducts(response.data.data || []);
-      } else {
-        setProducts([]);
-        console.error('API returned error:', response.data.message);
+      const response = await productsAPI.getAll({ 
+        limit: 50,
+        status: 'active' 
+      });
+      
+      if (response.data && response.data.success) {
+        const productsData = response.data.data || [];
+        setProducts(productsData);
+        setFilteredProducts(productsData);
+        toast.success(`Đã tải ${productsData.length} sản phẩm`);
+    } else {
+        throw new Error('Invalid API response');
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error loading products:', error);
+      message.error('Không thể tải danh sách sản phẩm');
+      // Set empty array on error
       setProducts([]);
-      // Don't show error message to user, just silently handle it
+      setFilteredProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (value) => {
-    const filtered = products.filter(product =>
-      product.name.toLowerCase().includes(value.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(value.toLowerCase()) ||
-      product.barcode?.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredProducts(filtered);
+  // Load customers from API
+  const loadCustomers = async () => {
+    try {
+      const response = await customersAPI.getAll({ 
+        limit: 100,
+        status: 'active' 
+      });
+      
+      if (response.data && response.data.success) {
+        const customersData = response.data.data || [];
+        setCustomers(customersData);
+        setFilteredCustomers(customersData);
+      } else {
+        throw new Error('Invalid API response');
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      message.error('Không thể tải danh sách khách hàng');
+      setCustomers([]);
+      setFilteredCustomers([]);
+    }
   };
 
-  const handleSerialSearch = async (serialNumber) => {
-    if (!serialNumber.trim()) {
+  // Search products
+  const handleProductSearch = async (value) => {
+    setSearchTerm(value);
+    
+    if (!value.trim()) {
       setFilteredProducts(products);
       return;
     }
 
     try {
-      setLoading(true);
+      setSearchLoading(true);
+      const response = await productsAPI.getAll({
+        search: value,
+        limit: 20,
+        status: 'active'
+      });
       
-      // Tìm kiếm serial trong database
-              const response = await productsAPI.searchSerials({ 
-        q: serialNumber, 
+      if (response.data && response.data.success) {
+        const searchResults = response.data.data || [];
+        setFilteredProducts(searchResults);
+      } else {
+        setFilteredProducts([]);
+      }
+    } catch (error) {
+      console.error('Error searching products:', error);
+      message.error('Lỗi tìm kiếm sản phẩm');
+      setFilteredProducts([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Search by serial number
+  const handleSerialSearch = async () => {
+    if (!serialNumber.trim()) {
+      message.warning('Vui lòng nhập số serial');
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+      const response = await serialsAPI.search(serialNumber, {
         status: 'available' 
       });
       
-      if (response.data.success && response.data.data.length > 0) {
-        const serial = response.data.data[0];
-        
-        // Tìm sản phẩm tương ứng với serial
-        const product = products.find(p => p.id === serial.product_id);
-        
-        if (product) {
-          // Hiển thị sản phẩm tìm thấy
-          setFilteredProducts([product]);
-          
-          // Tự động thêm serial vào giỏ hàng
-          const existingItem = cart.find(item => 
-            item.product.id === product.id && 
-            item.serial?.serial_number === serial.serial_number
-          );
-          
-          if (existingItem) {
-            toast.warning(`Serial ${serial.serial_number} đã có trong giỏ hàng`);
-          } else {
-            setCart(prev => [...prev, {
-              product: product,
-              quantity: 1,
-              serial: serial,
-              price: product.price
-            }]);
-            toast.success(`Đã thêm sản phẩm ${product.name} (Serial: ${serial.serial_number}) vào giỏ hàng`);
-          }
+      if (response.data && response.data.success) {
+        const serialData = response.data.data;
+        if (serialData && serialData.length > 0) {
+          const serial = serialData[0];
+          // Add product to cart with specific serial
+          addToCartWithSerial(serial);
+          setSerialNumber('');
+          toast.success(`Đã thêm sản phẩm với serial ${serial.serial_number}`);
         } else {
-          toast.error('Không tìm thấy sản phẩm tương ứng với serial này');
+          message.warning('Không tìm thấy serial hoặc serial đã được bán');
         }
       } else {
-        toast.error('Không tìm thấy serial hoặc serial đã được bán');
-        setFilteredProducts(products);
+        message.error('Không tìm thấy thông tin serial');
       }
     } catch (error) {
       console.error('Error searching serial:', error);
-      toast.error('Lỗi khi tìm kiếm serial');
-      setFilteredProducts(products);
+      message.error('Lỗi tìm kiếm serial');
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
-  const showSerialModal = async (product) => {
-    try {
-      setSelectedProductForSerial(product);
-              const response = await productsAPI.getSerials(product.id, { status: 'available' });
-      if (response.data.success) {
-        setAvailableSerials(Array.isArray(response.data.data) ? response.data.data : []);
-      } else {
-        setAvailableSerials([]);
-      }
-      setSerialModalVisible(true);
-    } catch (error) {
-      console.error('Error fetching serials:', error);
-      setAvailableSerials([]);
-      toast.error('Không thể tải danh sách serial của sản phẩm');
-    }
-  };
+  // Add product to cart with serial
+  const addToCartWithSerial = (serialData) => {
+    const existingItem = cart.find(item => 
+      item.product_id === serialData.product_id && 
+      item.serial_number === serialData.serial_number
+    );
 
-  const addToCart = async (product) => {
-    try {
-      // Thay vì thêm trực tiếp vào giỏ hàng, hiển thị modal chọn serial
-      await showSerialModal(product);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Lỗi khi thêm sản phẩm vào giỏ hàng');
-    }
-  };
-
-  const addSerialToCart = (selectedSerials) => {
-    if (!selectedSerials || selectedSerials.length === 0) {
-      toast.warning('Vui lòng chọn ít nhất một serial');
+    if (existingItem) {
+      message.warning('Sản phẩm với serial này đã có trong giỏ hàng');
       return;
     }
 
-    selectedSerials.forEach(serial => {
-      const existingItem = cart.find(item => 
-        item.product.id === selectedProductForSerial.id && 
-        item.serial?.serial_number === serial.serial_number
-      );
-      
-      if (existingItem) {
-        toast.warning(`Serial ${serial.serial_number} đã có trong giỏ hàng`);
+    const newItem = {
+      id: `${serialData.product_id}_${serialData.serial_number}`,
+      product_id: serialData.product_id,
+      name: serialData.product_name || 'Sản phẩm',
+      price: serialData.price || 0,
+      quantity: 1,
+      serial_number: serialData.serial_number,
+      warranty_months: serialData.warranty_months || 0,
+      total: serialData.price || 0
+    };
+
+    setCart(prev => [...prev, newItem]);
+  };
+
+  // Modified addToCart function to show serial selection modal
+  const addToCart = async (product) => {
+    try {
+      if (!product || !product.id) {
+        message.error('Sản phẩm không hợp lệ');
         return;
       }
 
-      setCart(prev => [...prev, {
-        product: selectedProductForSerial,
-        quantity: 1,
-        serial: serial,
-        price: selectedProductForSerial.price
-      }]);
-    });
+      // Check if product requires serial number
+      if (product.has_serial) {
+        setSelectedProductForSerial(product);
+        setSerialSelectModalVisible(true);
+        return;
+      }
 
-    toast.success(`Đã thêm ${selectedSerials.length} sản phẩm vào giỏ hàng`);
-    setSerialModalVisible(false);
-    setSelectedSerials([]);
-  };
-
-  const removeFromCart = (productId, serialNumber) => {
-    if (serialNumber) {
-      // Xóa item có serial cụ thể
-      setCart(prev => prev.filter(item => 
-        !(item.product.id === productId && item.serial?.serial_number === serialNumber)
-      ));
-    } else {
-      // Xóa tất cả item của sản phẩm này (fallback)
-      setCart(prev => prev.filter(item => item.product.id !== productId));
+      // Add product without serial number
+      const existingItem = cart.find(item => item.id === product.id && !item.serial_number);
+      
+      if (existingItem) {
+        // Update quantity if item already exists
+        const updatedCart = cart.map(item =>
+          item.id === product.id && !item.serial_number
+            ? { ...item, quantity: item.quantity + 1, total: (item.quantity + 1) * item.price }
+            : item
+        );
+        setCart(updatedCart);
+        toast.success(`Đã tăng số lượng ${product.name}`);
+      } else {
+        // Add new item to cart
+        const newItem = {
+          id: product.id,
+          product_id: product.id,  // Add product_id field
+          name: product.name,
+          price: product.price,
+          quantity: 1,
+          total: product.price,
+          sku: product.sku,
+          warranty_months: product.warranty_months || 0,
+          serial_number: null
+        };
+        
+        setCart([...cart, newItem]);
+        toast.success(`Đã thêm ${product.name} vào giỏ hàng`);
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      message.error('Lỗi khi thêm sản phẩm vào giỏ hàng');
     }
   };
 
-  const updateQuantity = (productId, serialNumber, newQuantity) => {
+  // Handle serial selection for product
+  const handleSerialSelection = (serialNumbers) => {
+    if (!selectedProductForSerial || !serialNumbers.length) {
+      return;
+    }
+
+    const product = selectedProductForSerial;
+    const newItems = serialNumbers.map(serialNumber => ({
+      id: `${product.id}_${serialNumber}`, // Unique ID for each serial
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      total: product.price,
+      sku: product.sku,
+      warranty_months: product.warranty_months || 0,
+      serial_number: serialNumber
+    }));
+
+    setCart([...cart, ...newItems]);
+    setSerialSelectModalVisible(false);
+    setSelectedProductForSerial(null);
+    
+    toast.success(`Đã thêm ${newItems.length} sản phẩm với số serial vào giỏ hàng`);
+  };
+
+  // Handle adding product from AllProductsModal
+  const handleAddFromAllProducts = (product, serialNumbers) => {
+    if (serialNumbers.length === 0) {
+      // Add product without serial
+      addToCart(product);
+    } else {
+      // Add product with selected serials
+      const newItems = serialNumbers.map(serialNumber => ({
+        id: `${product.id}_${serialNumber}`, // Unique ID for each serial
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        total: product.price,
+        sku: product.sku,
+        warranty_months: product.warranty_months || 0,
+        serial_number: serialNumber
+      }));
+
+      setCart([...cart, ...newItems]);
+      toast.success(`Đã thêm ${newItems.length} sản phẩm với số serial vào giỏ hàng`);
+    }
+  };
+
+  // Update cart quantity
+  const updateCartQuantity = (itemId, newQuantity) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId, serialNumber);
+      removeFromCart(itemId);
       return;
     }
     
-    setCart(prev => prev.map(item => {
-      if (item.product.id === productId && item.serial?.serial_number === serialNumber) {
-        return { ...item, quantity: newQuantity };
-      }
-      return item;
-    }));
+    setCart(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, quantity: newQuantity, total: item.price * newQuantity }
+        : item
+    ));
   };
 
+  // Remove from cart
+  const removeFromCart = (itemId) => {
+    setCart(prev => prev.filter(item => item.id !== itemId));
+    toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
+  };
+
+  // Clear cart
   const clearCart = () => {
     setCart([]);
+    setSelectedCustomer(null);
+    setDiscount(0);
+    setNote('');
+    toast.success('Đã xóa toàn bộ giỏ hàng');
   };
 
-  const getTotalAmount = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Calculate totals
+  const calculateTotals = () => {
+    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const discountAmount = (subtotal * discount) / 100;
+    const total = subtotal - discountAmount;
+    
+    return {
+      subtotal,
+      discountAmount,
+      total,
+      itemCount: cart.reduce((sum, item) => sum + item.quantity, 0)
+    };
   };
 
-  const getTotalItems = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  const handleCheckout = () => {
+  // Handle checkout
+  const handleCheckout = async (formData) => {
     if (cart.length === 0) {
-      toast.warning('Giỏ hàng trống');
+      message.warning('Giỏ hàng trống');
       return;
     }
-    setOrderModalVisible(true);
-  };
 
-  const submitOrder = async (values) => {
-    setLoading(true);
+    const totals = calculateTotals();
+    
+    if (formData.paymentMethod === 'cash' && formData.receivedAmount < totals.total) {
+      message.error('Số tiền nhận không đủ');
+      return;
+    }
+
     try {
-      // Tổng hợp tất cả serial để bán
-      const serialsToSell = [];
-      cart.forEach(item => {
-        if (item.serial && item.serial.serial_number) {
-          serialsToSell.push(item.serial.serial_number);
-        }
-      });
-
+    setLoading(true);
+      
+      // Prepare order data
       const orderData = {
         customer_id: selectedCustomer?.id || null,
-        customer_name: selectedCustomer?.name || values.customer_name || null,
-        customer_phone: selectedCustomer?.phone || values.customer_phone || null,
-        customer_email: selectedCustomer?.email || values.customer_email || null,
-        payment_method: values.payment_method || 'cash',
+        customer_name: selectedCustomer?.name || 'Khách lẻ',
+        customer_phone: selectedCustomer?.phone || '',
         items: cart.map(item => ({
-          product_id: item.product.id,
-          product_name: item.product.name,
+          product_id: item.product_id || item.id,
+          product_name: item.name,
           quantity: item.quantity,
           price: item.price,
-          subtotal: item.quantity * item.price,
-          serial_number: item.serial?.serial_number || null
+          total: item.total,
+          serial_number: item.serial_number || null
         })),
-        total_amount: getTotalAmount(),
-        serials_sold: serialsToSell,
-        notes: values.notes || null
+        subtotal: totals.subtotal,
+        discount_percent: discount,
+        discount_amount: totals.discountAmount,
+        total: totals.total,
+        payment_method: formData.paymentMethod,
+        received_amount: formData.receivedAmount,
+        change_amount: formData.receivedAmount - totals.total,
+        note: formData.note || '',
+        status: 'completed'
       };
 
+      // Create order
       const response = await ordersAPI.create(orderData);
       
-      if (response.data.success) {
-        // Đánh dấu serial đã bán
-        if (serialsToSell.length > 0) {
-          await productsAPI.sellSerials({
-            serial_numbers: serialsToSell,
-            order_id: response.data.data.id,
-            customer_id: response.data.data.customer_id || selectedCustomer?.id || null,
-            sold_price: getTotalAmount(),
-            notes: `Bán qua POS - ${response.data.data.order_number}`
-          });
-        }
-
-        // Refresh customer list to sync with customers page
-        await fetchCustomers();
-
-        toast.success('Tạo đơn hàng thành công!');
-        setSelectedCustomer(null);
-        clearCart();
-        setOrderModalVisible(false);
-        reset(); // Reset form
-        fetchProducts();
-        setPrintOrder(response.data.data);
+      if (response.data && response.data.success) {
+        const newOrder = response.data.data;
+        setCurrentOrder(newOrder);
+        setCheckoutModalVisible(false);
         setPrintModalVisible(true);
+        clearCart();
+        toast.success('Đã tạo đơn hàng thành công!');
       } else {
-        toast.error(response.data.message || 'Lỗi khi tạo đơn hàng');
+        throw new Error('Failed to create order');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Lỗi kết nối khi tạo đơn hàng.';
-      toast.error(errorMessage);
+      console.error('Error creating order:', error);
+      message.error('Không thể tạo đơn hàng');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickAddCustomer = async (values) => {
-    setCustomerQuickAddLoading(true);
-    try {
-      const response = await customersAPI.create({
-        name: values.name,
-        phone: values.phone,
-        email: values.email,
-        address: values.address,
-      });
-      if (response.data.success) {
-        toast.success('Thêm khách hàng thành công!');
-        await fetchCustomers(); // Refresh customer list
-        setCustomerQuickAddVisible(false);
-      } else {
-        toast.error(response.data.message || 'Lỗi khi thêm khách hàng');
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Lỗi kết nối khi thêm khách hàng.';
-      toast.error(errorMessage);
-    } finally {
-      setCustomerQuickAddLoading(false);
-    }
+  // Customer selection
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerModalVisible(false);
+    toast.success(`Đã chọn khách hàng: ${customer.name}`);
   };
 
-  const customerColumns = [
-    {
-      title: 'Tên khách hàng',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Số điện thoại',
-      dataIndex: 'phone',
-      key: 'phone',
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Địa chỉ',
-      dataIndex: 'address',
-      key: 'address',
-    },
-    {
-      title: 'Hành động',
-      key: 'action',
-      render: (_, record) => (
-        <Button type="link" onClick={() => selectCustomer(record)}>Chọn</Button>
-      ),
-    },
-  ];
+  // Handle customer creation callback
+  const handleCustomerCreated = (newCustomer) => {
+    // Add new customer to the list
+    setCustomers([...customers, newCustomer]);
+    setFilteredCustomers([...customers, newCustomer]);
+    
+    // Reload customers to get updated list
+    loadCustomers();
+  };
+
+  const totals = calculateTotals();
 
   return (
-    <div className="pos-page">
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={16}>
+    <div style={{ padding: '24px', background: '#f5f5f5', minHeight: '100vh' }}>
+      <h1 style={{ marginBottom: '24px', color: '#1890ff', fontSize: '24px', fontWeight: 'bold' }}>
+        <ShoppingCartOutlined /> Điểm Bán Hàng
+      </h1>
+
+      <Row gutter={[24, 24]}>
+        {/* Product Search & List */}
+        <Col xs={24} lg={14}>
           <Card 
-            title="Danh sách sản phẩm"
-            extra={
-              <Space direction="vertical" size="small">
-                <Search
-                  placeholder="Tìm sản phẩm..."
-                  onSearch={handleSearch}
-                  style={{ width: 200 }}
-                  loading={loading}
-                />
-                <Search
-                  placeholder="Quét Serial Number..."
-                  onSearch={handleSerialSearch}
-                  enterButton="Quét"
-                  style={{ width: 200 }}
-                  loading={loading}
-                />
+            title={
+              <Space>
+                <ShoppingOutlined />
+                <span>Sản phẩm</span>
+                <Badge count={filteredProducts.length} style={{ backgroundColor: '#52c41a' }} />
               </Space>
             }
+            style={{ height: '100%' }}
           >
-            {loading ? (
-              <Skeleton active paragraph={{ rows: 8 }} />
-            ) : (
-              <ProductList products={filteredProducts} loading={loading} onAddToCart={addToCart} onShowSerialModal={showSerialModal} formatCurrency={formatCurrency} />
+            <Space direction="vertical" style={{ width: '100%', marginBottom: '16px' }}>
+              <Search
+                placeholder="Tìm kiếm sản phẩm theo tên, SKU..."
+                allowClear
+                loading={searchLoading}
+                onSearch={handleProductSearch}
+                onChange={(e) => handleProductSearch(e.target.value)}
+                style={{ width: '100%' }}
+                data-testid="product-search"
+              />
+              
+              <Input.Group compact>
+                <Input
+                  placeholder="Quét hoặc nhập số serial"
+                  value={serialNumber}
+                  onChange={(e) => setSerialNumber(e.target.value)}
+                  onPressEnter={handleSerialSearch}
+                  style={{ width: 'calc(100% - 100px)' }}
+                  prefix={<BarcodeOutlined />}
+                />
+                <Button 
+                  type="primary" 
+                  onClick={handleSerialSearch}
+                  loading={searchLoading}
+                  style={{ width: '100px' }}
+                  data-testid="barcode-scan-button"
+                >
+                  Quét mã vạch
+                </Button>
+              </Input.Group>
+              
+              <Button
+                type="dashed"
+                icon={<ShopOutlined />}
+                onClick={() => setAllProductsModalVisible(true)}
+                block
+                style={{ marginTop: '8px' }}
+                data-testid="all-products-button"
+              >
+                Xem tất cả sản phẩm có Serial
+              </Button>
+            </Space>
+
+            <Spin spinning={loading}>
+              {filteredProducts.length > 0 ? (
+                <Row gutter={[16, 16]}>
+                  {filteredProducts.map(product => (
+                    <Col xs={24} sm={12} md={8} key={product.id}>
+                      <Card
+                        size="small"
+                        hoverable
+                        actions={[
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<PlusOutlined />}
+                            onClick={() => addToCart(product)}
+                            block
+                          >
+                            {product.has_serial ? 'Chọn Serial' : 'Thêm'}
+                          </Button>
+                        ]}
+                        style={{ height: '100%' }}
+                      >
+                        <div style={{ textAlign: 'center' }}>
+                          <Title level={5} ellipsis style={{ marginBottom: '8px' }}>
+                            {product.name}
+                          </Title>
+                          <Text type="secondary" style={{ fontSize: '12px' }}>
+                            SKU: {product.sku}
+                          </Text>
+                          <div style={{ margin: '8px 0' }}>
+                            <Text strong style={{ fontSize: '16px', color: '#f5222d' }}>
+                              {new Intl.NumberFormat('vi-VN', {
+                                style: 'currency',
+                                currency: 'VND'
+                              }).format(product.price)}
+                            </Text>
+                          </div>
+                          <Space>
+                            <Tag color={product.quantity > 0 ? 'green' : 'red'}>
+                              Tồn: {product.quantity || 0}
+                            </Tag>
+                            {product.has_serial && (
+                              <Tag color="blue">
+                                Serial
+                              </Tag>
+                            )}
+                          </Space>
+                        </div>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              ) : (
+                <Empty
+                  description={searchTerm ? 'Không tìm thấy sản phẩm' : 'Chưa có sản phẩm nào'}
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
             )}
+            </Spin>
           </Card>
         </Col>
 
-        <Col xs={24} lg={8}>
+        {/* Cart & Checkout */}
+        <Col xs={24} lg={10}>
           <Card
-            title="Giỏ hàng"
-            actions={[
+            title={
+              <Space>
+                <ShoppingCartOutlined />
+                <span>Giỏ hàng</span>
+                <Badge count={totals.itemCount} style={{ backgroundColor: '#1890ff' }} />
+              </Space>
+            }
+            extra={
               <Button
-                type="primary"
-                icon={<ShoppingCartOutlined />}
-                onClick={handleCheckout}
-                disabled={cart.length === 0}
-              >
-                Thanh toán ({getTotalItems()})
-              </Button>,
-              <Button
+                type="text" 
                 danger
-                icon={<DeleteOutlined />}
+                size="small"
+                icon={<ClearOutlined />}
                 onClick={clearCart}
                 disabled={cart.length === 0}
               >
-                Xóa giỏ hàng
-              </Button>,
-            ]}
+                Xóa tất cả
+              </Button>
+            }
+            style={{ height: '100%' }}
+            data-testid="cart-section"
           >
-            <CartList cart={cart} onRemove={removeFromCart} onUpdateQuantity={updateQuantity} formatCurrency={formatCurrency} />
+            <CartList
+              items={cart}
+              onUpdateQuantity={updateCartQuantity}
+              onRemoveItem={removeFromCart}
+            />
+
             <Divider />
-            <div style={{ textAlign: 'right' }}>
-              <Title level={3}>Tổng cộng: {formatCurrency(getTotalAmount())}</Title>
+
+            {/* Customer Selection */}
+            <div style={{ marginBottom: '16px' }}>
+              <Button
+                type={selectedCustomer ? 'default' : 'dashed'}
+                icon={<UserOutlined />}
+                onClick={() => setCustomerModalVisible(true)}
+                block
+                style={{ textAlign: 'left' }}
+                data-testid="customer-select-button"
+              >
+                {selectedCustomer ? (
+                  <span>
+                    <strong>{selectedCustomer.name}</strong>
+                    <br />
+                    <Text type="secondary">{selectedCustomer.phone}</Text>
+                  </span>
+                ) : (
+                  'Chọn khách hàng'
+                )}
+              </Button>
             </div>
+
+            {/* Discount */}
+            <div style={{ marginBottom: '16px' }}>
+              <Text strong>Giảm giá (%)</Text>
+              <div style={{ marginTop: '4px' }}>
+                <InputNumber
+                  min={0}
+                  max={100}
+                  value={discount}
+                  onChange={setDiscount}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập % giảm giá"
+                  data-testid="discount-input"
+                />
+              </div>
+            </div>
+
+            {/* Totals */}
+            <div style={{ background: '#f5f5f5', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+              <Row justify="space-between">
+                <Text>Tạm tính:</Text>
+                <Text strong>
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND'
+                  }).format(totals.subtotal)}
+                </Text>
+              </Row>
+              {discount > 0 && (
+                <Row justify="space-between">
+                  <Text>Giảm giá ({discount}%):</Text>
+                  <Text type="danger">
+                    -{new Intl.NumberFormat('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND'
+                    }).format(totals.discountAmount)}
+                  </Text>
+                </Row>
+              )}
+              <Divider style={{ margin: '8px 0' }} />
+              <Row justify="space-between">
+                <Text strong style={{ fontSize: '16px' }}>Tổng cộng:</Text>
+                <Text strong style={{ fontSize: '18px', color: '#f5222d' }}>
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND'
+                  }).format(totals.total)}
+                </Text>
+              </Row>
+            </div>
+
+            {/* Checkout Button */}
+            <Button
+              type="primary"
+              size="large"
+              icon={<CheckCircleOutlined />}
+              onClick={() => setCheckoutModalVisible(true)}
+              disabled={cart.length === 0}
+              block
+              style={{ height: '50px', fontSize: '16px' }}
+              data-testid="checkout-button"
+            >
+              Thanh toán
+            </Button>
           </Card>
         </Col>
       </Row>
 
-      <OrderFormModal visible={orderModalVisible} onSubmit={submitOrder} onCancel={() => setOrderModalVisible(false)} control={control} errors={errors} handleSubmit={handleSubmit} loading={loading} selectedCustomer={selectedCustomer} clearSelectedCustomer={clearSelectedCustomer} getTotalAmount={getTotalAmount} getTotalItems={getTotalItems} />
-      <CustomerSelectModal visible={customerModalVisible} onOk={selectCustomer} onCancel={() => setCustomerModalVisible(false)} customers={customers} loading={loading} onSearch={handleCustomerSearch} filteredCustomers={filteredCustomers} selectCustomer={selectCustomer} />
-      <SerialSelectModal visible={serialModalVisible} onOk={addSerialToCart} onCancel={() => setSerialModalVisible(false)} serials={availableSerials} selectedSerials={selectedSerials} setSelectedSerials={setSelectedSerials} loading={loading} />
-      <OrderPrintModal visible={printModalVisible} order={printOrder} onClose={() => setPrintModalVisible(false)} formatCurrency={formatCurrency} />
-      <CustomerQuickAddModal visible={customerQuickAddVisible} onOk={handleQuickAddCustomer} onCancel={() => setCustomerQuickAddVisible(false)} loading={customerQuickAddLoading} />
+      {/* Customer Selection Modal */}
+      <CustomerSelectModal
+        visible={customerModalVisible}
+        onClose={() => setCustomerModalVisible(false)}
+        onSelect={handleCustomerSelect}
+        customers={customers}
+        onCustomerCreated={handleCustomerCreated}
+      />
+
+      {/* Serial Selection Modal */}
+      <SerialSelectModal
+        visible={serialSelectModalVisible}
+        onClose={() => {
+          setSerialSelectModalVisible(false);
+          setSelectedProductForSerial(null);
+        }}
+        onSelect={handleSerialSelection}
+        product={selectedProductForSerial}
+      />
+
+      {/* Checkout Modal */}
+      <Modal
+        title="Thanh toán"
+        open={checkoutModalVisible}
+        onCancel={() => setCheckoutModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={checkoutForm}
+          layout="vertical"
+          onFinish={handleSubmit(handleCheckout)}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Phương thức thanh toán">
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <Radio.Group {...field} style={{ width: '100%' }}>
+                      <Radio.Button value="cash" style={{ width: '100%', textAlign: 'center' }}>
+                        Tiền mặt
+                      </Radio.Button>
+                      <Radio.Button value="card" style={{ width: '100%', textAlign: 'center' }}>
+                        Thẻ
+                      </Radio.Button>
+                      <Radio.Button value="transfer" style={{ width: '100%', textAlign: 'center' }}>
+                        Chuyển khoản
+                      </Radio.Button>
+                    </Radio.Group>
+                  )}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Số tiền nhận">
+                <Controller
+                  name="receivedAmount"
+                  control={control}
+                  render={({ field }) => (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <InputNumber
+                        {...field}
+                        min={0}
+                        style={{ width: '100%' }}
+                        placeholder="Nhập số tiền nhận"
+                        formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                        data-testid="received-amount-input"
+                      />
+                      <Button
+                        type="primary"
+                        size="small"
+                        onClick={() => {
+                          const totalAmount = totals.total;
+                          field.onChange(totalAmount);
+                          checkoutForm.setFieldsValue({ receivedAmount: totalAmount });
+                        }}
+                        data-testid="exact-amount-button"
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        Vừa đủ
+                      </Button>
+                    </div>
+                  )}
+                />
+                {errors.receivedAmount && (
+                  <Text type="danger">{errors.receivedAmount.message}</Text>
+                )}
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item label="Ghi chú">
+            <Controller
+              name="note"
+              control={control}
+              render={({ field }) => (
+                <Input.TextArea
+                  {...field}
+                  rows={3}
+                  placeholder="Ghi chú đơn hàng..."
+                />
+              )}
+            />
+          </Form.Item>
+
+          <div style={{ background: '#f5f5f5', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+            <Row justify="space-between">
+              <Text>Tổng tiền:</Text>
+              <Text strong style={{ fontSize: '18px', color: '#f5222d' }}>
+                {new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND'
+                }).format(totals.total)}
+              </Text>
+            </Row>
+            {receivedAmount > totals.total && (
+              <Row justify="space-between">
+                <Text>Tiền thừa:</Text>
+                <Text strong style={{ color: '#52c41a' }}>
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND'
+                  }).format(receivedAmount - totals.total)}
+                </Text>
+              </Row>
+            )}
+          </div>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Button onClick={() => setCheckoutModalVisible(false)} block>
+                Hủy
+              </Button>
+            </Col>
+            <Col span={12}>
+              <Button 
+                type="primary" 
+                htmlType="submit"
+                loading={loading}
+                block
+              >
+                Xác nhận thanh toán
+              </Button>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      {/* All Products Serial Modal */}
+      <AllProductsSerialModal
+        visible={allProductsModalVisible}
+        onClose={() => setAllProductsModalVisible(false)}
+        onAddToCart={handleAddFromAllProducts}
+      />
+
+      {/* Print Modal */}
+      <OrderPrintModal
+        visible={printModalVisible}
+        onClose={() => setPrintModalVisible(false)}
+        order={currentOrder}
+      />
     </div>
   );
-}
+};
 
 export default POSPage; 

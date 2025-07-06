@@ -412,10 +412,20 @@ const DebtPage = () => {
       key: 'current_debt',
       render: (debt) => (
         <Text strong style={{ color: debt > 0 ? '#ff4d4f' : '#52c41a' }}>
-          {debt.toLocaleString('vi-VN')} ₫
+          {(debt || 0).toLocaleString('vi-VN')} ₫
         </Text>
       ),
-      sorter: (a, b) => a.current_debt - b.current_debt,
+      sorter: (a, b) => (a.current_debt || 0) - (b.current_debt || 0),
+    },
+    {
+      title: 'Tổng mua hàng',
+      dataIndex: 'total_purchases',
+      key: 'total_purchases',
+      render: (purchases) => (
+        <Text type="secondary">
+          {(purchases || 0).toLocaleString('vi-VN')} ₫
+        </Text>
+      ),
     },
     {
       title: 'Trạng thái',
@@ -424,7 +434,7 @@ const DebtPage = () => {
         const debt = record.current_debt || 0;
         if (debt === 0) {
           return <Badge status="success" text="Đã thanh toán" />;
-        } else if (debt > 5000000) {
+        } else if (debt > 1000000) {
           return <Badge status="error" text="Nợ lớn" />;
         } else {
           return <Badge status="warning" text="Có nợ" />;
@@ -444,7 +454,6 @@ const DebtPage = () => {
               setModalType('payment');
               setActiveTab('suppliers');
               setModalVisible(true);
-              // 🆕 Set form values với Ant Design Form
               form.setFieldsValue({
                 entity_id: record.id,
                 payment_method: 'cash',
@@ -461,43 +470,54 @@ const DebtPage = () => {
     },
   ];
 
-  // Table columns for supplier transaction history
   const supplierHistoryColumns = [
     {
-      title: 'Ngày giao dịch',
+      title: 'Ngày',
       dataIndex: 'transaction_date',
       key: 'transaction_date',
-      render: (date) => date ? new Date(date).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '',
-      width: 140,
+      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+      width: 100,
+    },
+    {
+      title: 'Nhà cung cấp',
+      dataIndex: 'supplier_name',
+      key: 'supplier_name',
+      render: (name) => name || 'Không xác định',
     },
     {
       title: 'Số tiền',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <span style={{ color: '#cf1322', fontWeight: 500 }}>- {amount.toLocaleString('vi-VN')} ₫</span>,
+      render: (amount) => <span style={{ color: '#cf1322', fontWeight: 500 }}>- {(amount || 0).toLocaleString('vi-VN')} ₫</span>,
       width: 120,
     },
     {
       title: 'Mô tả',
       dataIndex: 'description',
       key: 'description',
-      render: (desc) => desc || 'Thanh toán nợ nhà cung cấp',
+      render: (desc) => desc || 'Trả nợ nhà cung cấp',
     },
   ];
 
   const customerHistoryColumns = [
     {
-      title: 'Ngày giao dịch',
+      title: 'Ngày',
       dataIndex: 'transaction_date',
       key: 'transaction_date',
-      render: (date) => date ? new Date(date).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '',
-      width: 140,
+      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+      width: 100,
+    },
+    {
+      title: 'Khách hàng',
+      dataIndex: 'customer_name',
+      key: 'customer_name',
+      render: (name) => name || 'Không xác định',
     },
     {
       title: 'Số tiền',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <span style={{ color: '#52c41a', fontWeight: 500 }}>+ {amount.toLocaleString('vi-VN')} ₫</span>,
+      render: (amount) => <span style={{ color: '#52c41a', fontWeight: 500 }}>+ {(amount || 0).toLocaleString('vi-VN')} ₫</span>,
       width: 120,
     },
     {

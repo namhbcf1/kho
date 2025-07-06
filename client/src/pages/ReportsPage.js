@@ -27,10 +27,11 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 function ReportsPage() {
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
-  const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [dateRange, setDateRange] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -40,36 +41,58 @@ function ReportsPage() {
     try {
       setLoading(true);
       
-      // Load thống kê tổng quan
-      const statsResponse = await ordersAPI.getStats();
-      if (statsResponse.data.success) {
-        setStats(statsResponse.data.data);
-      }
-
-      // Load sản phẩm để tính tồn kho
+      // Load orders với error handling
+      const ordersResponse = await ordersAPI.getAll();
+      const ordersData = ordersResponse?.data?.data || [];
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      
+      // Load products với error handling  
       const productsResponse = await productsAPI.getAll();
-      if (productsResponse.data.success) {
-        setProducts(productsResponse.data.data);
-      }
-
-      // Load đơn hàng gần đây
-      const ordersResponse = await ordersAPI.getAll({ limit: 20 });
-      if (ordersResponse.data.success) {
-        setOrders(ordersResponse.data.data);
-      }
+      const productsData = productsResponse?.data?.data || [];
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      
+      // Calculate stats - Add array checks before reduce
+      const safeOrdersData = Array.isArray(ordersData) ? ordersData : [];
+      const totalRevenue = safeOrdersData.reduce((sum, order) => sum + (order.total || 0), 0);
+      const todayOrders = safeOrdersData.filter(order => {
+        const orderDate = new Date(order.created_at);
+        const today = new Date();
+        return orderDate.toDateString() === today.toDateString();
+      });
+      
+      const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      
+      setStats({
+        total_revenue: totalRevenue,
+        today_revenue: todayRevenue,
+        today_orders: todayOrders.length,
+        total_orders: ordersData.length
+      });
+      
     } catch (error) {
-      console.error('Lỗi khi tải dữ liệu báo cáo:', error);
+      console.error('Error loading reports data:', error);
+      // Set default empty arrays để tránh lỗi forEach
+      setOrders([]);
+      setProducts([]);
+      setStats({
+        total_revenue: 0,
+        today_revenue: 0,
+        today_orders: 0,
+        total_orders: 0
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const getProductStats = () => {
-    const totalProducts = products.length;
-    const inStock = products.filter(p => p.quantity > 0).length;
-    const outOfStock = products.filter(p => p.quantity === 0).length;
-    const lowStock = products.filter(p => p.quantity > 0 && p.quantity <= 10).length;
-    const totalStockValue = products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+    // Add array check before using products
+    const safeProducts = Array.isArray(products) ? products : [];
+    const totalProducts = safeProducts.length;
+    const inStock = safeProducts.filter(p => p.quantity > 0).length;
+    const outOfStock = safeProducts.filter(p => p.quantity === 0).length;
+    const lowStock = safeProducts.filter(p => p.quantity > 0 && p.quantity <= 10).length;
+    const totalStockValue = safeProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
     
     return { totalProducts, inStock, outOfStock, lowStock, totalStockValue };
   };
@@ -78,23 +101,26 @@ function ReportsPage() {
     // Tính toán sản phẩm bán chạy từ order items
     const productSales = {};
     
-    orders.forEach(order => {
-      if (order.items) {
-        order.items.forEach(item => {
-          if (productSales[item.product_id]) {
-            productSales[item.product_id].quantity += item.quantity;
-            productSales[item.product_id].revenue += item.subtotal;
-          } else {
-            productSales[item.product_id] = {
-              name: item.product_name,
-              quantity: item.quantity,
-              revenue: item.subtotal,
-              price: item.price
-            };
-          }
-        });
-      }
-    });
+    // Kiểm tra orders là array trước khi forEach
+    if (Array.isArray(orders) && orders.length > 0) {
+      orders.forEach(order => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach(item => {
+            if (productSales[item.product_id]) {
+              productSales[item.product_id].quantity += item.quantity;
+              productSales[item.product_id].revenue += item.subtotal;
+            } else {
+              productSales[item.product_id] = {
+                name: item.product_name,
+                quantity: item.quantity,
+                revenue: item.subtotal,
+                price: item.price
+              };
+            }
+          });
+        }
+      });
+    }
 
     return Object.values(productSales)
       .sort((a, b) => b.quantity - a.quantity)
@@ -102,6 +128,11 @@ function ReportsPage() {
   };
 
   const getLowStockProducts = () => {
+    // Kiểm tra products là array trước khi filter
+    if (!Array.isArray(products)) {
+      return [];
+    }
+    
     return products
       .filter(p => p.quantity > 0 && p.quantity <= 10)
       .sort((a, b) => a.quantity - b.quantity)
@@ -191,6 +222,7 @@ function ReportsPage() {
                   <ArrowUpOutlined /> +12.5%
                 </span>
               }
+              data-testid="stat-today-revenue"
             />
           </Card>
         </Col>
@@ -201,6 +233,7 @@ function ReportsPage() {
               value={stats.today_orders || 0}
               prefix={<ShoppingOutlined />}
               valueStyle={{ color: '#1890ff' }}
+              data-testid="stat-today-orders"
             />
           </Card>
         </Col>
@@ -211,6 +244,7 @@ function ReportsPage() {
               value={productStats.totalProducts}
               prefix={<AppstoreOutlined />}
               valueStyle={{ color: '#722ed1' }}
+              data-testid="stat-total-products"
             />
           </Card>
         </Col>
@@ -223,6 +257,7 @@ function ReportsPage() {
               formatter={(value) => formatCurrency(value)}
               prefix={<TeamOutlined />}
               valueStyle={{ color: '#fa8c16' }}
+              data-testid="stat-total-revenue"
             />
           </Card>
         </Col>
@@ -276,13 +311,14 @@ function ReportsPage() {
       {/* Bảng thống kê */}
       <Row gutter={16}>
         <Col span={12}>
-          <Card title="Top sản phẩm bán chạy" loading={loading}>
+          <Card title="Top sản phẩm bán chạy">
             <Table
               dataSource={topProducts}
               columns={topProductsColumns}
               rowKey="name"
               pagination={false}
               size="small"
+              data-testid="top-products-table"
             />
           </Card>
         </Col>
@@ -290,7 +326,6 @@ function ReportsPage() {
         <Col span={12}>
           <Card 
             title="Sản phẩm sắp hết hàng" 
-            loading={loading}
             extra={
               <Text type="secondary">
                 {productStats.lowStock} sản phẩm
@@ -303,6 +338,7 @@ function ReportsPage() {
               rowKey="id"
               pagination={false}
               size="small"
+              data-testid="low-stock-table"
             />
           </Card>
         </Col>

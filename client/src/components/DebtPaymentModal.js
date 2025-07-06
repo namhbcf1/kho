@@ -3,7 +3,18 @@ import { Modal, Form, Input, Button, Row, Col, Select, DatePicker, Spin } from '
 
 const { Option } = Select;
 
-const DebtPaymentModal = ({ visible, onSubmit, onCancel, loading, form, entityType, entityList, paymentMethods, modalType, initialValues = {} }) => {
+const DebtPaymentModal = ({ 
+  visible, 
+  onSubmit, 
+  onCancel, 
+  loading, 
+  form, 
+  entityType, 
+  entityList = [], 
+  paymentMethods = [], 
+  modalType, 
+  initialValues = {} 
+}) => {
   useEffect(() => {
     if (visible) {
       form.resetFields();
@@ -12,6 +23,17 @@ const DebtPaymentModal = ({ visible, onSubmit, onCancel, loading, form, entityTy
       }
     }
   }, [visible, initialValues, form]);
+
+  // Default payment methods if not provided
+  const defaultPaymentMethods = [
+    { value: 'cash', label: 'Tiền mặt' },
+    { value: 'card', label: 'Thẻ' },
+    { value: 'transfer', label: 'Chuyển khoản' },
+    { value: 'ewallet', label: 'Ví điện tử' }
+  ];
+
+  const safePaymentMethods = paymentMethods.length > 0 ? paymentMethods : defaultPaymentMethods;
+  const safeEntityList = Array.isArray(entityList) ? entityList : [];
 
   return (
     <Modal
@@ -28,31 +50,76 @@ const DebtPaymentModal = ({ visible, onSubmit, onCancel, loading, form, entityTy
           layout="vertical"
           onFinish={onSubmit}
         >
-          <Form.Item label={entityType === 'customers' ? 'Khách hàng' : 'Nhà cung cấp'} name="entity_id" rules={[{ required: true, message: 'Chọn đối tượng' }]}> 
+          <Form.Item 
+            label={entityType === 'customers' ? 'Khách hàng' : 'Nhà cung cấp'} 
+            name="entity_id" 
+            rules={[{ required: true, message: 'Chọn đối tượng' }]}
+          > 
             <Select placeholder={`Chọn ${entityType === 'customers' ? 'khách hàng' : 'nhà cung cấp'}`}>
-              {entityList.map(entity => (
-                <Option key={entity.id} value={entity.id}>{entity.name}</Option>
+              {safeEntityList.map(entity => (
+                <Option key={entity.id} value={entity.id}>
+                  {entity.name} {entity.phone && `(${entity.phone})`}
+                </Option>
               ))}
             </Select>
           </Form.Item>
-          <Form.Item label="Số tiền" name="amount" rules={[{ required: true, message: 'Nhập số tiền' }]}> 
-            <Input type="number" min={0} placeholder="Nhập số tiền" />
+          
+          <Form.Item 
+            label="Số tiền" 
+            name="amount" 
+            rules={[{ required: true, message: 'Nhập số tiền' }]}
+          > 
+            <Input 
+              type="number" 
+              min={0} 
+              placeholder="Nhập số tiền"
+              formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/\$\s?|(,*)/g, '')}
+            />
           </Form.Item>
-          <Form.Item label="Phương thức thanh toán" name="payment_method" rules={[{ required: true, message: 'Chọn phương thức' }]}> 
+          
+          <Form.Item 
+            label="Phương thức thanh toán" 
+            name="payment_method" 
+            rules={[{ required: true, message: 'Chọn phương thức' }]}
+          > 
             <Select placeholder="Chọn phương thức">
-              {paymentMethods.map((method) => (
-                <Option key={method.value} value={method.value}>{method.label}</Option>
+              {safePaymentMethods.map((method) => (
+                <Option key={method.value} value={method.value}>
+                  {method.label}
+                </Option>
               ))}
             </Select>
           </Form.Item>
-          <Form.Item label="Ngày giao dịch" name="transaction_date" rules={[{ required: true, message: 'Chọn ngày' }]}> 
+          
+          <Form.Item 
+            label="Ngày giao dịch" 
+            name="transaction_date" 
+            rules={[{ required: true, message: 'Chọn ngày' }]}
+          > 
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
+          
           <Form.Item label="Mô tả" name="description"> 
-            <Input placeholder="Nhập mô tả" />
+            <Input.TextArea 
+              rows={3}
+              placeholder="Nhập mô tả giao dịch..." 
+            />
           </Form.Item>
+          
           <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>Lưu</Button>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Button onClick={onCancel} block>
+                  Hủy
+                </Button>
+              </Col>
+              <Col span={12}>
+                <Button type="primary" htmlType="submit" block loading={loading}>
+                  {modalType === 'payment' ? 'Thanh toán' : 'Lưu'}
+                </Button>
+              </Col>
+            </Row>
           </Form.Item>
         </Form>
       </Spin>

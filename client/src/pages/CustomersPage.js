@@ -1,507 +1,463 @@
 import React, { useState, useEffect } from 'react';
 import {
   Card,
-  Table,
   Button,
   Input,
+  Table, 
   Space,
-  Modal,
+  Typography, 
+  Spin, 
   Form,
-  Select,
   message,
+  Popconfirm,
+  Tag,
+  Statistic,
   Row,
   Col,
-  Statistic,
-  Tag,
+  Badge,
   Tooltip,
-  DatePicker,
-  Popconfirm,
-  Drawer,
-  Tabs,
-  Empty,
-  Typography,
-  Descriptions,
-  Timeline
+  Empty
 } from 'antd';
 import {
-  PlusOutlined,
+  UserAddOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
   SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  UserOutlined,
   PhoneOutlined,
   MailOutlined,
-  HomeOutlined,
-  CrownOutlined,
+  UserOutlined,
+  TeamOutlined,
   ShoppingCartOutlined,
-  CalendarOutlined,
-  EyeOutlined
+  DollarOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
-import api, { customersAPI, ordersAPI, formatCurrency, formatDate, productsAPI } from '../services/api';
-import dayjs from 'dayjs';
+
+// Import API functions
+import { customersAPI, ordersAPI } from '../services/api';
+
+// Import components
 import CustomerFormModal from '../components/CustomerFormModal';
-import { toast } from 'sonner';
 import CustomerDetailDrawer from '../components/CustomerDetailDrawer';
 
+const { Title, Text } = Typography;
 const { Search } = Input;
-const { Option } = Select;
-const { TabPane } = Tabs;
-const { Text } = Typography;
 
 const CustomersPage = () => {
+  // State management
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isDetailDrawerVisible, setIsDetailDrawerVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [searchText, setSearchText] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  
+  // Statistics
   const [stats, setStats] = useState({
-    total: 0,
-    regular: 0,
-    vip: 0,
-    wholesale: 0
+    totalCustomers: 0,
+    activeCustomers: 0,
+    totalOrders: 0,
+    totalRevenue: 0
   });
-  const [customerPurchaseHistory, setCustomerPurchaseHistory] = useState([]);
-  const [purchaseHistoryLoading, setPurchaseHistoryLoading] = useState(false);
-  const [orderSerials, setOrderSerials] = useState({});
+
+  // Form instance
   const [form] = Form.useForm();
 
-  const customerTypes = [
-    { value: 'regular', label: 'Khách thường', color: 'default' },
-    { value: 'vip', label: 'VIP', color: 'gold' },
-    { value: 'wholesale', label: 'Bán sỉ', color: 'purple' }
-  ];
-
+  // Load customers on component mount
   useEffect(() => {
-    fetchCustomers();
-  }, [searchText, filterType]);
-
-  // ✨ AI Error Monitor Integration - Listen for auto-refresh events
-  useEffect(() => {
-    const handleAIRefreshCustomerList = () => {
-      console.log('🤖 AI triggered customer list refresh');
-      fetchCustomers();
-    };
-
-    // Listen for AI refresh customer list event
-    window.addEventListener('ai-refresh-customer-list', handleAIRefreshCustomerList);
-
-    // Cleanup event listener
-    return () => {
-      window.removeEventListener('ai-refresh-customer-list', handleAIRefreshCustomerList);
-    };
+    loadCustomers();
   }, []);
 
-  // Fetch serials for all orders in purchase history
+  // Filter customers when search text changes
   useEffect(() => {
-    if (customerPurchaseHistory.length > 0) {
-      fetchAllOrderSerials();
-    }
-  }, [customerPurchaseHistory]);
-
-  const fetchAllOrderSerials = async () => {
-    const serialsMap = {};
-    for (const order of customerPurchaseHistory) {
-      if (!order.items) continue;
-      for (const item of order.items) {
-        try {
-          const response = await productsAPI.getSoldSerials({ product_id: item.product_id, order_id: order.id });
-          if (response.data.success) {
-            serialsMap[`${order.id}_${item.product_id}`] = response.data.data || [];
+    if (searchText) {
+      const filtered = customers.filter(customer =>
+        customer.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        customer.phone?.includes(searchText) ||
+        customer.email?.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setFilteredCustomers(filtered);
           } else {
-            serialsMap[`${order.id}_${item.product_id}`] = [];
+      setFilteredCustomers(customers);
           }
-        } catch (error) {
-          serialsMap[`${order.id}_${item.product_id}`] = [];
-        }
-      }
-    }
-    setOrderSerials(serialsMap);
-  };
+  }, [customers, searchText]);
 
-  const fetchCustomers = async () => {
+  // Load customers from API
+  const loadCustomers = async () => {
     try {
       setLoading(true);
       const response = await customersAPI.getAll({
-        search: searchText,
-        type: filterType
+        limit: 100,
+        include_stats: true
       });
       
-      if (response.data.success) {
-        setCustomers(response.data.data);
-        calculateStats(response.data.data);
+      if (response.data && response.data.success) {
+        const customersData = response.data.data || [];
+        setCustomers(customersData);
+        setFilteredCustomers(customersData);
+        calculateStats(customersData);
+        message.success(`Đã tải ${customersData.length} khách hàng`);
+      } else {
+        throw new Error('Invalid API response');
       }
     } catch (error) {
-      toast.error('Lỗi khi tải danh sách khách hàng');
-      console.error('Error fetching customers:', error);
+      console.error('Error loading customers:', error);
+      message.error('Không thể tải danh sách khách hàng');
+      setCustomers([]);
+      setFilteredCustomers([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Calculate statistics
   const calculateStats = (customerData) => {
-    const stats = {
-      total: customerData.length,
-      regular: customerData.filter(c => c.customer_type === 'regular').length,
-      vip: customerData.filter(c => c.customer_type === 'vip').length,
-      wholesale: customerData.filter(c => c.customer_type === 'wholesale').length
-    };
-    setStats(stats);
-  };
-
-  const showModal = (customer = null) => {
-    setEditingCustomer(customer);
-    setIsModalVisible(true);
-    if (customer) {
-      form.setFieldsValue({
-        ...customer,
+    const totalCustomers = customerData.length;
+    const activeCustomers = customerData.filter(c => c.status === 'active').length;
+    const totalOrders = customerData.reduce((sum, c) => sum + (c.total_orders || 0), 0);
+    const totalRevenue = customerData.reduce((sum, c) => sum + (c.total_spent || 0), 0);
+    
+    setStats({
+      totalCustomers,
+      activeCustomers,
+      totalOrders,
+      totalRevenue
       });
-    } else {
-      form.resetFields();
-    }
   };
 
-  const handleCancel = () => {
-    setIsModalVisible(false);
+  // Handle search
+  const handleSearch = (value) => {
+    setSearchText(value);
+  };
+
+  // Handle create customer
+  const handleCreate = () => {
     setEditingCustomer(null);
     form.resetFields();
+    setModalVisible(true);
   };
 
-  const handleSubmit = async (values) => {
-    try {
-      // Remove unwanted fields from values before sending
-      const { gender, birthday, city, ...customerData } = values; 
+  // Handle edit customer
+  const handleEdit = (customer) => {
+    setEditingCustomer(customer);
+    form.setFieldsValue({
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address,
+      notes: customer.notes
+    });
+    setModalVisible(true);
+  };
 
-      if (editingCustomer) {
-        await customersAPI.update(editingCustomer.id, customerData);
-        toast.success('Cập nhật khách hàng thành công');
-      } else {
-        await customersAPI.create(customerData);
-        toast.success('Tạo khách hàng thành công');
-      }
+  // Handle delete customer
+  const handleDelete = async (customerId) => {
+    try {
+      setLoading(true);
+      const response = await customersAPI.delete(customerId);
       
-      handleCancel();
-      fetchCustomers();
+      if (response.data && response.data.success) {
+        message.success('Đã xóa khách hàng thành công');
+        loadCustomers(); // Reload list
+      } else {
+        throw new Error('Failed to delete customer');
+      }
     } catch (error) {
-      toast.error(`Lỗi khi ${editingCustomer ? 'cập nhật' : 'tạo'} khách hàng: ` + (error.response?.data?.message || error.message));
-      console.error('Error saving customer:', error);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await customersAPI.delete(id);
-      toast.success('Xóa khách hàng thành công');
-      fetchCustomers();
-    } catch (error) {
-      toast.error('Lỗi khi xóa khách hàng');
       console.error('Error deleting customer:', error);
+      message.error('Không thể xóa khách hàng');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const showCustomerDetail = async (customer) => {
+  // Handle view customer details
+  const handleViewDetails = async (customer) => {
     try {
       setSelectedCustomer(customer);
-        setIsDetailDrawerVisible(true);
-      setPurchaseHistoryLoading(true);
+      setDetailDrawerVisible(true);
       
-      // Fetch customer details
-      const customerResponse = await customersAPI.getById(customer.id);
-      if (customerResponse.data.success) {
-        setSelectedCustomer(customerResponse.data.data);
+      // Load customer purchase history
+      const ordersResponse = await ordersAPI.getAll({
+        customer_id: customer.id,
+        limit: 50
+      });
+      
+      if (ordersResponse.data && ordersResponse.data.success) {
+        const customerWithHistory = {
+          ...customer,
+          purchaseHistory: ordersResponse.data.data || []
+        };
+        setSelectedCustomer(customerWithHistory);
       }
-      
-      // 🛒 Fetch customer purchase history
-      try {
-        const ordersResponse = await api.get('/orders', {
-          params: {
-            customer_name: customer.name, // Search by customer name since orders don't have customer_id
-            limit: 100
-          }
-        });
-        
-        if (ordersResponse.data.success) {
-          const customerOrders = ordersResponse.data.data.orders || ordersResponse.data.data;
-          // Filter orders that match this customer (by name and/or phone)
-          const filteredOrders = customerOrders.filter(order => 
-            (order.customer_name && order.customer_name.toLowerCase() === customer.name.toLowerCase()) ||
-            (order.customer_phone && customer.phone && order.customer_phone === customer.phone)
-          );
-          setCustomerPurchaseHistory(filteredOrders);
-        } else {
-          setCustomerPurchaseHistory([]);
-        }
-      } catch (orderError) {
-        console.error('Error fetching purchase history:', orderError);
-        setCustomerPurchaseHistory([]);
-      }
-      
     } catch (error) {
-      toast.error('Lỗi khi tải thông tin khách hàng');
-    } finally {
-      setPurchaseHistoryLoading(false);
+      console.error('Error loading customer details:', error);
+      message.error('Không thể tải thông tin chi tiết khách hàng');
     }
   };
 
+  // Handle form submission
+  const handleSubmit = async (values) => {
+    try {
+      setLoading(true);
+      let response;
+      
+      if (editingCustomer) {
+        // Update existing customer
+        response = await customersAPI.update(editingCustomer.id, values);
+      } else {
+        // Create new customer
+        response = await customersAPI.create(values);
+      }
+      
+      if (response.data && response.data.success) {
+        message.success(editingCustomer ? 'Đã cập nhật khách hàng' : 'Đã tạo khách hàng mới');
+        setModalVisible(false);
+        form.resetFields();
+        loadCustomers(); // Reload list
+        } else {
+        throw new Error('Failed to save customer');
+      }
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      message.error('Không thể lưu thông tin khách hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  // Table columns
   const columns = [
     {
-      title: 'Mã KH',
-      dataIndex: 'code',
-      key: 'code',
-      width: 100,
-      render: (text) => <strong>{text}</strong>
+      title: 'Tên khách hàng',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <Space>
+          <UserOutlined style={{ color: '#1890ff' }} />
+          <span style={{ fontWeight: 'bold' }}>{text}</span>
+          {record.is_vip && <Tag color="gold">VIP</Tag>}
+        </Space>
+      ),
+      sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
-      title: 'Thông tin khách hàng',
-      key: 'customer_info',
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-            <UserOutlined style={{ marginRight: 8 }} />
-            {record.name}
-          </div>
-          {record.phone && (
-            <div style={{ color: '#666', fontSize: '12px' }}>
-              <PhoneOutlined style={{ marginRight: 4 }} />
-              {record.phone}
-            </div>
-          )}
-          {record.email && (
-            <div style={{ color: '#666', fontSize: '12px' }}>
-              <MailOutlined style={{ marginRight: 4 }} />
-              {record.email}
-            </div>
-          )}
-        </div>
-      )
+      title: 'Số điện thoại',
+      dataIndex: 'phone',
+      key: 'phone',
+      render: (text) => (
+        <Space>
+          <PhoneOutlined style={{ color: '#52c41a' }} />
+          <span>{text}</span>
+        </Space>
+      ),
     },
     {
-      title: 'Loại KH',
-      dataIndex: 'customer_type',
-      key: 'customer_type',
-      width: 120,
-      render: (type) => {
-        const typeConfig = customerTypes.find(t => t.value === type);
-        return (
-          <Tag color={typeConfig?.color} icon={type === 'vip' ? <CrownOutlined /> : null}>
-            {typeConfig?.label}
-          </Tag>
-        );
-      }
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      render: (text) => text ? (
+        <Space>
+          <MailOutlined style={{ color: '#722ed1' }} />
+          <span>{text}</span>
+        </Space>
+      ) : <Text type="secondary">Chưa có</Text>,
+    },
+    {
+      title: 'Tổng đơn hàng',
+      dataIndex: 'total_orders',
+      key: 'total_orders',
+      render: (value) => (
+        <Badge count={value || 0} style={{ backgroundColor: '#1890ff' }} />
+      ),
+      sorter: (a, b) => (a.total_orders || 0) - (b.total_orders || 0),
     },
     {
       title: 'Tổng chi tiêu',
       dataIndex: 'total_spent',
       key: 'total_spent',
-      width: 120,
-      render: (amount) => (
-        <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
-          {formatCurrency(amount || 0)}
-        </span>
+      render: (value) => (
+        <Text strong style={{ color: '#f5222d' }}>
+          {formatCurrency(value || 0)}
+        </Text>
       ),
-      sorter: (a, b) => (a.total_spent || 0) - (b.total_spent || 0)
+      sorter: (a, b) => (a.total_spent || 0) - (b.total_spent || 0),
     },
     {
-      title: 'Số lần mua',
-      dataIndex: 'visit_count',
-      key: 'visit_count',
-      width: 100,
-      render: (count) => (
-        <span>
-          <ShoppingCartOutlined style={{ marginRight: 4 }} />
-          {count || 0}
-        </span>
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'active' ? 'green' : 'red'}>
+          {status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+        </Tag>
       ),
-      sorter: (a, b) => (a.visit_count || 0) - (b.visit_count || 0)
     },
     {
-      title: 'Chiết khấu',
-      dataIndex: 'discount_rate',
-      key: 'discount_rate',
-      width: 100,
-      render: (rate) => (
-        <span style={{ color: '#fa8c16' }}>
-          {rate || 0}%
-        </span>
-      )
-    },
-    {
-      title: 'Lần cuối mua',
-      dataIndex: 'last_visit',
-      key: 'last_visit',
-      width: 130,
-      render: (date) => date ? formatDate(date) : 'Chưa mua'
-    },
-    {
-      title: 'Thao tác',
+      title: 'Hành động',
       key: 'actions',
-      width: 150,
       render: (_, record) => (
         <Space>
           <Tooltip title="Xem chi tiết">
             <Button
-              type="default"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => showCustomerDetail(record)}
+              type="text"
+              icon={<SearchOutlined />}
+              onClick={() => handleViewDetails(record)}
             />
           </Tooltip>
           <Tooltip title="Chỉnh sửa">
             <Button
-              type="primary"
-              size="small"
+              type="text"
               icon={<EditOutlined />}
-              onClick={() => showModal(record)}
+              onClick={() => handleEdit(record)}
             />
           </Tooltip>
+          <Tooltip title="Xóa">
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa khách hàng này?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Có"
-            cancelText="Không"
+              okText="Xóa"
+              cancelText="Hủy"
           >
-            <Tooltip title="Xóa">
               <Button
-                type="default"
+                type="text"
                 danger
-                size="small"
                 icon={<DeleteOutlined />}
               />
+            </Popconfirm>
             </Tooltip>
-          </Popconfirm>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* Header với thống kê */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col span={6}>
+      <Title level={2} style={{ marginBottom: '24px' }}>
+        <TeamOutlined /> Quản lý khách hàng
+      </Title>
+
+      {/* Statistics Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Tổng khách hàng"
-              value={stats.total}
-              prefix={<UserOutlined />}
+              value={stats.totalCustomers}
+              prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Khách thường"
-              value={stats.regular}
+              title="Khách hàng hoạt động"
+              value={stats.activeCustomers}
+              prefix={<UserOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Khách VIP"
-              value={stats.vip}
-              prefix={<CrownOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              title="Tổng đơn hàng"
+              value={stats.totalOrders}
+              prefix={<ShoppingCartOutlined style={{ color: '#722ed1' }} />}
+              valueStyle={{ color: '#722ed1' }}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Khách bán sỉ"
-              value={stats.wholesale}
-              valueStyle={{ color: '#722ed1' }}
+              title="Tổng doanh thu"
+              value={stats.totalRevenue}
+              formatter={(value) => formatCurrency(value)}
+              prefix={<DollarOutlined style={{ color: '#f5222d' }} />}
+              valueStyle={{ color: '#f5222d' }}
             />
           </Card>
         </Col>
       </Row>
 
       {/* Main Content */}
-      <Card title="Quản lý khách hàng">
-        {/* Filters */}
+      <Card>
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col span={8}>
+          <Col xs={24} sm={16} md={18}>
             <Search
-              placeholder="Tìm theo tên, SĐT, mã KH..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onSearch={fetchCustomers}
-              enterButton={<SearchOutlined />}
+              placeholder="Tìm kiếm khách hàng..."
               allowClear
+              onSearch={handleSearch}
+              onChange={(e) => handleSearch(e.target.value)}
+              style={{ width: '100%' }}
+              data-testid="search-customers"
             />
           </Col>
-          <Col span={6}>
-            <Select
-              style={{ width: '100%' }}
-              placeholder="Lọc theo loại khách hàng"
-              value={filterType}
-              onChange={setFilterType}
-            >
-              <Option value="all">Tất cả</Option>
-              {customerTypes.map(type => (
-                <Option key={type.value} value={type.value}>
-                  {type.label}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col span={10} style={{ textAlign: 'right' }}>
+          <Col xs={24} sm={8} md={6}>
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => showModal()}
-              size="large"
+              onClick={() => setModalVisible(true)}
+              block
+              data-testid="add-customer-btn"
             >
               Thêm khách hàng
             </Button>
           </Col>
         </Row>
 
-        {/* Table */}
+        <Spin spinning={loading}>
+          {filteredCustomers.length > 0 ? (
         <Table
           columns={columns}
-          dataSource={customers}
+              dataSource={filteredCustomers}
           rowKey="id"
-          loading={loading}
           pagination={{
-            total: customers.length,
+                total: filteredCustomers.length,
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => 
-              `${range[0]}-${range[1]} của ${total} khách hàng`
+                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} khách hàng`,
           }}
-          scroll={{ x: 1200 }}
+              scroll={{ x: 800 }}
         />
+          ) : (
+            <Empty
+              description="Không có khách hàng nào"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
+        </Spin>
       </Card>
 
-      {/* Modal thêm/sửa khách hàng */}
+      {/* Customer Form Modal */}
       <CustomerFormModal
-        isModalVisible={isModalVisible}
-        handleCancel={handleCancel}
-        editingCustomer={editingCustomer}
+        visible={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+        }}
+        onSubmit={handleSubmit}
         form={form}
-        handleSubmit={handleSubmit}
-        customerTypes={customerTypes}
+        editingCustomer={editingCustomer}
+        loading={loading}
       />
 
-      {/* 🆕 Enhanced Customer Details Drawer */}
+      {/* Customer Detail Drawer */}
       <CustomerDetailDrawer
-        isDetailDrawerVisible={isDetailDrawerVisible}
-        setIsDetailDrawerVisible={setIsDetailDrawerVisible}
-        selectedCustomer={selectedCustomer}
-        customerTypes={customerTypes}
-        customerPurchaseHistory={customerPurchaseHistory}
-        purchaseHistoryLoading={purchaseHistoryLoading}
-        orderSerials={orderSerials}
-        showModal={showModal}
-        handleDelete={handleDelete}
-        formatCurrency={formatCurrency}
-        formatDate={formatDate}
+        visible={detailDrawerVisible}
+        onClose={() => setDetailDrawerVisible(false)}
+        customer={selectedCustomer}
       />
     </div>
   );

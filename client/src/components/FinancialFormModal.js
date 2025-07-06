@@ -42,7 +42,7 @@ const FinancialFormModal = ({ visible, onSubmit, onCancel, loading, form, catego
             <Col span={12}>
               <Form.Item label="Danh mục" name="category" rules={[{ required: true, message: 'Chọn danh mục' }]}> 
                 <Select placeholder="Chọn danh mục">
-                  {categories.income.concat(categories.expense).map((category) => (
+                  {(categories?.income || []).concat(categories?.expense || []).map((category) => (
                     <Option key={category} value={category}>{category}</Option>
                   ))}
                 </Select>
@@ -58,7 +58,7 @@ const FinancialFormModal = ({ visible, onSubmit, onCancel, loading, form, catego
             <Col span={12}>
               <Form.Item label="Phương thức thanh toán" name="payment_method" rules={[{ required: true, message: 'Chọn phương thức' }]}> 
                 <Select placeholder="Chọn phương thức">
-                  {paymentMethods.map((method) => (
+                  {(paymentMethods || []).map((method) => (
                     <Option key={method.value} value={method.value}>{method.label}</Option>
                   ))}
                 </Select>

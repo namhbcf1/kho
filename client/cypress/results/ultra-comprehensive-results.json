@@ -1,0 +1,933 @@
+{
+  "totalTests": 0,
+  "passedTests": 0,
+  "failedTests": 0,
+  "interactions": [
+    {
+      "type": "header",
+      "action": "notifications_open",
+      "success": true,
+      "timestamp": "2025-07-05T12:55:24.473Z"
+    },
+    {
+      "type": "header",
+      "action": "user_menu_open",
+      "success": true,
+      "timestamp": "2025-07-05T12:55:25.260Z"
+    },
+    {
+      "type": "search",
+      "action": "product_search",
+      "query": "test product",
+      "success": true,
+      "timestamp": "2025-07-05T12:55:33.184Z"
+    },
+    {
+      "type": "search",
+      "action": "serial_search",
+      "query": "TEST123456",
+      "success": true,
+      "timestamp": "2025-07-05T12:55:34.597Z"
+    },
+    {
+      "type": "search",
+      "action": "search_submit",
+      "success": true,
+      "timestamp": "2025-07-05T12:55:34.909Z"
+    },
+    {
+      "type": "cart",
+      "action": "add_product",
+      "success": true,
+      "timestamp": "2025-07-05T12:55:44.176Z"
+    },
+    {
+      "type": "customer",
+      "action": "add_modal_open",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:28.380Z"
+    },
+    {
+      "type": "customer_search",
+      "query": "test",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:47.409Z"
+    },
+    {
+      "type": "customer_filter",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:48.720Z"
+    },
+    {
+      "type": "customer_filter",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:49.641Z"
+    },
+    {
+      "type": "customer_filter",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:50.527Z"
+    }
+  ],
+  "modals": [],
+  "buttons": [],
+  "forms": [
+    {
+      "type": "search",
+      "placeholder": "Tìm sản phẩm...",
+      "action": "input_test",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:19.907Z"
+    },
+    {
+      "type": "search",
+      "placeholder": "Quét Serial Number...",
+      "action": "input_test",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:20.641Z"
+    },
+    {
+      "action": "submit_validation_test",
+      "success": true,
+      "timestamp": "2025-07-05T12:56:21.011Z"
+    }
+  ],
+  "apiCalls": [
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:55:07.680Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:07.847Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:07.851Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:09.604Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:09.650Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:55:21.240Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:21.471Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:21.476Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:22.764Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:23.079Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:55:26.135Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:26.294Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:26.298Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:27.342Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:27.345Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/pos",
+      "timestamp": "2025-07-05T12:55:28.932Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:29.142Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:29.147Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:30.108Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:30.119Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/serials/search?q=TEST123456&status=available",
+      "timestamp": "2025-07-05T12:55:34.858Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:55:37.081Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:37.526Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:37.958Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:38.510Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:38.796Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/pos",
+      "timestamp": "2025-07-05T12:55:40.148Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:40.340Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:40.370Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:41.246Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:41.252Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products/22/serials?status=available",
+      "timestamp": "2025-07-05T12:55:44.125Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:55:55.510Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:55.722Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:56.113Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:56.976Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:56.991Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/pos",
+      "timestamp": "2025-07-05T12:55:58.297Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:55:58.468Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:55:58.476Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:55:59.340Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:55:59.345Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:56:12.356Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:12.829Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:13.268Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:56:14.074Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:56:14.235Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/pos",
+      "timestamp": "2025-07-05T12:56:15.503Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:15.752Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:15.759Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:56:16.636Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:56:16.651Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products/22/serials?status=available",
+      "timestamp": "2025-07-05T12:56:20.964Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:56:21.446Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:21.643Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:21.651Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:56:22.555Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:56:22.556Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/customers",
+      "timestamp": "2025-07-05T12:56:24.241Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:24.435Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:24.441Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?search=&type=all",
+      "timestamp": "2025-07-05T12:56:25.356Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:56:39.780Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:39.923Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:40.323Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:56:41.194Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:56:41.199Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/customers",
+      "timestamp": "2025-07-05T12:56:42.496Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:42.758Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:42.804Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?search=&type=all",
+      "timestamp": "2025-07-05T12:56:43.761Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?search=t&type=all",
+      "timestamp": "2025-07-05T12:56:46.715Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?search=te&type=all",
+      "timestamp": "2025-07-05T12:56:46.873Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?search=tes&type=all",
+      "timestamp": "2025-07-05T12:56:47.109Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?search=test&type=all",
+      "timestamp": "2025-07-05T12:56:47.266Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:56:51.479Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:51.950Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:52.346Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:56:52.964Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:56:52.966Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/products",
+      "timestamp": "2025-07-05T12:56:54.519Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:56:54.781Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:56:54.838Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:56:55.799Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/categories",
+      "timestamp": "2025-07-05T12:56:55.838Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/suppliers",
+      "timestamp": "2025-07-05T12:56:55.844Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:57:10.854Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:57:11.001Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:57:11.400Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:57:12.328Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:57:12.340Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/products",
+      "timestamp": "2025-07-05T12:57:13.641Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:57:13.897Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:57:13.901Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:57:14.910Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/suppliers",
+      "timestamp": "2025-07-05T12:57:14.921Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/categories",
+      "timestamp": "2025-07-05T12:57:14.930Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:57:27.892Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:57:28.466Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:57:28.661Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:57:31.043Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:57:31.055Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/reports",
+      "timestamp": "2025-07-05T12:57:32.138Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:57:32.709Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:57:32.719Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/orders/stats/summary",
+      "timestamp": "2025-07-05T12:57:34.448Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:57:35.129Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/orders?limit=20",
+      "timestamp": "2025-07-05T12:57:35.527Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:57:47.478Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:57:47.749Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:57:48.090Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:57:50.353Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:57:50.540Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/users",
+      "timestamp": "2025-07-05T12:57:51.501Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:57:51.883Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:57:52.035Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/users",
+      "timestamp": "2025-07-05T12:57:56.305Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:57:56.673Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:57:56.681Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:58:08.914Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:09.406Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:09.901Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:10.957Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:11.133Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:58:12.325Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:12.699Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:12.708Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:13.912Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:13.914Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:58:14.204Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:14.361Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:14.369Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:15.605Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:15.611Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:58:21.388Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:21.605Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:22.042Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:22.622Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:22.894Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:58:24.709Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:24.864Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:24.867Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:25.881Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:25.884Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/products",
+      "timestamp": "2025-07-05T12:58:27.497Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:27.912Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:27.917Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:58:29.991Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:30.142Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:30.147Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:31.614Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:31.621Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/pos",
+      "timestamp": "2025-07-05T12:58:32.826Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:33.101Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:33.211Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:34.551Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:34.557Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/",
+      "timestamp": "2025-07-05T12:58:44.429Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/js/main.17fc1e35.js",
+      "timestamp": "2025-07-05T12:58:44.879Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://f1549151.pos-frontend-e1q.pages.dev/static/css/main.b2156ef8.css",
+      "timestamp": "2025-07-05T12:58:45.298Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/products",
+      "timestamp": "2025-07-05T12:58:46.317Z"
+    },
+    {
+      "method": "GET",
+      "url": "https://pos-backend-v2.bangachieu2.workers.dev/api/customers?phone=&name=",
+      "timestamp": "2025-07-05T12:58:46.507Z"
+    }
+  ],
+  "uiElements": [
+    {
+      "viewport": "320x568",
+      "responsive": true,
+      "timestamp": "2025-07-05T12:58:16.884Z"
+    },
+    {
+      "viewport": "768x1024",
+      "responsive": true,
+      "timestamp": "2025-07-05T12:58:16.885Z"
+    },
+    {
+      "viewport": "1024x768",
+      "responsive": true,
+      "timestamp": "2025-07-05T12:58:16.886Z"
+    },
+    {
+      "viewport": "1920x1080",
+      "responsive": true,
+      "timestamp": "2025-07-05T12:58:16.887Z"
+    }
+  ],
+  "performance": {
+    "pageLoad": 1033
+  },
+  "errors": []
+}

@@ -150,12 +150,55 @@ const InventoryPage = () => {
   const fetchProductSerials = async (product) => {
     try {
       setLoading(true);
+      console.log('🔍 Fetching serials for product:', product);
+      
+      // Create a storage key for this product's serials
+      const storageKey = `pos_serials_${product.id}`;
+      
+      // Try to fetch real serials first
+      try {
+        const response = await productsAPI.getSerials(product.id);
+        console.log('📊 Real serials response:', response);
+        
+        if (response.data.success && response.data.data.length > 0) {
+          console.log('✅ Found real serials:', response.data.data.length);
+          setProductSerials(response.data.data);
+          return;
+        }
+      } catch (realError) {
+        console.log('⚠️ Real serials not available, checking local storage:', realError.message);
+      }
+      
+      // Check localStorage for saved serials
+      try {
+        const savedSerials = localStorage.getItem(storageKey);
+        if (savedSerials) {
+          const parsedSerials = JSON.parse(savedSerials);
+          console.log('📦 Found saved serials in localStorage:', parsedSerials.length);
+          setProductSerials(parsedSerials);
+          return;
+        }
+      } catch (storageError) {
+        console.log('⚠️ Error reading from localStorage:', storageError.message);
+      }
+      
       // For demo purposes, generate mock serial data
-      const mockSerials = generateMockSerials(product.id, product.quantity, product.name);
+      console.log('🎭 Generating mock serials for product:', product.name);
+      const mockSerials = generateMockSerials(product.id, Math.max(product.quantity, 1), product.name);
+      console.log('📦 Generated mock serials:', mockSerials.length);
+      
+      // Save mock serials to localStorage
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(mockSerials));
+        console.log('💾 Saved mock serials to localStorage');
+      } catch (storageError) {
+        console.log('⚠️ Error saving to localStorage:', storageError.message);
+      }
+      
       setProductSerials(mockSerials);
     } catch (error) {
+      console.error('❌ Error fetching serials:', error);
       message.error('Lỗi khi tải danh sách serial');
-      console.error('Error fetching serials:', error);
     } finally {
       setLoading(false);
     }
@@ -227,40 +270,109 @@ const InventoryPage = () => {
         const lines = values.serial_list.split('\n').map(s => s.trim()).filter(Boolean);
         for (const serial of lines) {
           serials.push({
+            id: `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             serial_number: serial,
             status: values.status,
             condition_grade: values.condition_grade,
             warranty_start_date: values.warranty_start_date ? values.warranty_start_date.format('YYYY-MM-DD') : null,
             warranty_end_date: values.warranty_start_date && values.warranty_period ? values.warranty_start_date.clone().add(values.warranty_period, 'months').format('YYYY-MM-DD') : null,
             location: values.location,
-            notes: values.notes
+            notes: values.notes,
+            created_at: new Date().toISOString(),
+            product_id: selectedProduct.id,
           });
         }
       } else {
         const prefix = values.serial_prefix || selectedProduct.sku || selectedProduct.name.substring(0, 3).toUpperCase();
         for (let i = 1; i <= values.quantity; i++) {
           serials.push({
-            serial_number: `${prefix}-${Date.now()}-${i}`,
+            id: `new_${Date.now()}_${i}`,
+            serial_number: `${prefix}${Date.now().toString().slice(-6)}${i.toString().padStart(3, '0')}`,
             status: values.status,
             condition_grade: values.condition_grade,
             warranty_start_date: values.warranty_start_date ? values.warranty_start_date.format('YYYY-MM-DD') : null,
             warranty_end_date: values.warranty_start_date && values.warranty_period ? values.warranty_start_date.clone().add(values.warranty_period, 'months').format('YYYY-MM-DD') : null,
             location: values.location,
-            notes: values.notes
+            notes: values.notes,
+            created_at: new Date().toISOString(),
+            product_id: selectedProduct.id,
           });
         }
       }
-              await productsAPI.addSerials(selectedProduct.id, { serials });
-      message.success(`Thêm ${serials.length} serial thành công!`);
+
+      console.log('🔄 Attempting to save serials:', serials);
+      
+      // Create storage key for this product
+      const storageKey = `pos_serials_${selectedProduct.id}`;
+      
+      try {
+        // Try to save to backend first
+        const response = await productsAPI.addSerials(selectedProduct.id, { serials });
+        console.log('✅ Serials saved to backend:', response.data);
+        
+        if (response.data.success) {
+          message.success(`Thêm ${serials.length} serial thành công!`);
+          
+          // Update local state
+          const updatedSerials = [...productSerials, ...serials];
+          setProductSerials(updatedSerials);
+          
+          // Also save to localStorage as backup
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(updatedSerials));
+            console.log('💾 Also saved to localStorage as backup');
+          } catch (storageError) {
+            console.log('⚠️ Could not save to localStorage:', storageError.message);
+          }
+        } else {
+          throw new Error(response.data.message || 'Backend error');
+        }
+      } catch (backendError) {
+        console.log('⚠️ Backend not available, saving locally:', backendError.message);
+        
+        // If backend fails, save to local state and localStorage
+        const updatedSerials = [...productSerials, ...serials];
+        setProductSerials(updatedSerials);
+        
+        // Save to localStorage
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(updatedSerials));
+          console.log('💾 Saved serials to localStorage');
+          message.success(`Thêm ${serials.length} serial thành công! (Lưu tạm thời)`);
+          
+          // Show info about persistence
+          message.info('Dữ liệu được lưu trong trình duyệt. Sẽ hiển thị khi bạn quay lại trang này.', 4);
+        } catch (storageError) {
+          console.error('❌ Could not save to localStorage:', storageError.message);
+          message.error('Không thể lưu serial. Vui lòng thử lại.');
+          return;
+        }
+      }
+      
       setIsAddSerialModalVisible(false);
       serialForm.resetFields();
+      
+      // Refresh the serial drawer if it's open
       if (isSerialDrawerVisible) {
-        fetchProductSerials(selectedProduct);
+        console.log('🔄 Refreshing serial drawer with updated data');
+        // The state is already updated, no need to fetch again
       }
-      fetchProducts();
+      
+      // Update the products list to reflect new serial count
+      const updatedProducts = products.map(product => {
+        if (product.id === selectedProduct.id) {
+          return {
+            ...product,
+            serial_count: (product.serial_count || 0) + serials.length
+          };
+        }
+        return product;
+      });
+      setProducts(updatedProducts);
+      
     } catch (error) {
-      message.error('Lỗi khi thêm serial');
-      console.error('Error adding serials:', error);
+      console.error('❌ Error adding serials:', error);
+      message.error('Lỗi khi thêm serial: ' + error.message);
     }
   };
 

@@ -286,7 +286,7 @@ const FinancialPage = () => {
           <Card>
             <Statistic
               title="Tổng thu"
-              value={stats.total_income || stats.totalIncome}
+              value={stats?.total_income || stats?.totalIncome || 0}
               precision={0}
               valueStyle={{ color: '#3f8600' }}
               prefix={<RiseOutlined />}
@@ -298,7 +298,7 @@ const FinancialPage = () => {
           <Card>
             <Statistic
               title="Tổng chi"
-              value={stats.total_expense || stats.totalExpense}
+              value={stats?.total_expense || stats?.totalExpense || 0}
               precision={0}
               valueStyle={{ color: '#cf1322' }}
               prefix={<FallOutlined />}
@@ -310,7 +310,7 @@ const FinancialPage = () => {
           <Card>
             <Statistic
               title="Lợi nhuận"
-              value={stats.net_profit || stats.netProfit}
+              value={stats?.net_profit || stats?.netProfit || 0}
               precision={0}
               valueStyle={{ color: '#1890ff' }}
               prefix={<DollarOutlined />}
@@ -322,7 +322,7 @@ const FinancialPage = () => {
           <Card>
             <Statistic
               title="Thu hôm nay"
-              value={stats.today_income || stats.todayIncome}
+              value={stats?.today_income || stats?.todayIncome || 0}
               precision={0}
               valueStyle={{ color: '#52c41a' }}
               prefix={<RiseOutlined />}

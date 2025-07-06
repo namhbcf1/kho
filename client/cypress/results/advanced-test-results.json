@@ -1,0 +1,49 @@
+{
+  "summary": {
+    "totalErrors": 0,
+    "errorsByType": {},
+    "totalInteractions": 0,
+    "successfulInteractions": 0,
+    "totalApiCalls": 2,
+    "failedApiCalls": 0,
+    "pageMetrics": {
+      "loadTime": 0,
+      "elementsFound": {
+        "buttons": 0,
+        "links": 0,
+        "forms": 0,
+        "inputs": 0
+      }
+    }
+  },
+  "details": {
+    "errors": [],
+    "interactions": [],
+    "apiCalls": [
+      {
+        "url": "https://pos-frontend-e1q.pages.dev/",
+        "method": "GET",
+        "status": 200,
+        "duration": 72,
+        "timestamp": "2025-07-06T14:55:37.040Z"
+      },
+      {
+        "url": "https://pos-frontend-e1q.pages.dev/static/js/main.ccb6c394.js",
+        "method": "GET",
+        "status": 200,
+        "duration": 319,
+        "timestamp": "2025-07-06T14:55:37.435Z"
+      }
+    ],
+    "pageMetrics": {
+      "loadTime": 0,
+      "elementsFound": {
+        "buttons": 0,
+        "links": 0,
+        "forms": 0,
+        "inputs": 0
+      }
+    }
+  },
+  "timestamp": "2025-07-06T14:56:37.059Z"
+}

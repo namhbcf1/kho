@@ -39,6 +39,7 @@ function ProductsPage() {
   const [form] = Form.useForm();
   const [suppliers, setSuppliers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
     loadProducts();
@@ -86,27 +87,17 @@ function ProductsPage() {
     }
   };
 
+  // Handle search
   const handleSearch = (value) => {
-    const filtered = products.filter(product =>
-      product.name.toLowerCase().includes(value.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(value.toLowerCase()) ||
-      product.category?.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredProducts(filtered);
+    setSearchText(value);
   };
 
-  const showModal = (product = null) => {
-    setEditingProduct(product);
+  // Show modal
+  const showModal = () => {
     setModalVisible(true);
-    
-    if (product) {
-      form.setFieldsValue(product);
-    } else {
-      form.resetFields();
-    }
   };
 
-  const hideModal = () => {
+  const handleCancel = () => {
     setModalVisible(false);
     setEditingProduct(null);
     form.resetFields();
@@ -130,7 +121,7 @@ function ProductsPage() {
         }
       }
       
-      hideModal();
+      handleCancel();
       loadProducts();
     } catch (error) {
       message.error(error.response?.data?.message || 'Có lỗi xảy ra');
@@ -239,7 +230,11 @@ function ProductsPage() {
           <Button
             size="small"
             icon={<EditOutlined />}
-            onClick={() => showModal(record)}
+            onClick={() => {
+              setEditingProduct(record);
+              setModalVisible(true);
+              form.setFieldsValue(record);
+            }}
           />
           <Popconfirm
             title="Bạn có chắc muốn xóa sản phẩm này?"
@@ -303,24 +298,29 @@ function ProductsPage() {
 
       {/* Bảng sản phẩm */}
       <Card>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <Search
-            placeholder="Tìm kiếm sản phẩm..."
-            allowClear
-            style={{ width: 300 }}
-            prefix={<SearchOutlined />}
-            onSearch={handleSearch}
-            onChange={e => handleSearch(e.target.value)}
-          />
-          
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => showModal()}
-          >
-            Thêm sản phẩm
-          </Button>
-        </div>
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={16} md={18}>
+            <Search
+              placeholder="Tìm kiếm sản phẩm..."
+              allowClear
+              onSearch={handleSearch}
+              onChange={(e) => handleSearch(e.target.value)}
+              style={{ width: '100%' }}
+              data-testid="search-products"
+            />
+          </Col>
+          <Col xs={24} sm={8} md={6}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={showModal}
+              block
+              data-testid="add-product-btn"
+            >
+              Thêm sản phẩm
+            </Button>
+          </Col>
+        </Row>
 
         <Table
           dataSource={filteredProducts}
@@ -341,7 +341,7 @@ function ProductsPage() {
       <Modal
         title={editingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}
         open={modalVisible}
-        onCancel={hideModal}
+        onCancel={handleCancel}
         footer={null}
         width={700}
       >
@@ -479,7 +479,7 @@ function ProductsPage() {
           </Form.Item>
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
-              <Button onClick={hideModal}>Hủy</Button>
+              <Button onClick={handleCancel}>Hủy</Button>
               <Button type="primary" htmlType="submit" loading={loading}>
                 {editingProduct ? 'Cập nhật' : 'Thêm mới'}
               </Button>
