@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "pos-backend" generated at 2025-07-04T20:53:01.025Z.
