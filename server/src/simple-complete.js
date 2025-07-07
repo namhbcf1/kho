@@ -372,6 +372,46 @@ app.post('/api/auth/login', async (c) => {
   }
 });
 
+app.get('/api/auth/profile', async (c) => {
+  try {
+    // For demo, return the same demo user
+    // In production, you would validate JWT token and get user from database
+    return c.json({
+      success: true,
+      data: {
+        id: 1,
+        username: 'admin',
+        full_name: 'System Administrator',
+        email: 'admin@example.com',
+        role: 'admin',
+        permissions: ['all']
+      },
+      message: 'Lấy thông tin người dùng thành công'
+    });
+  } catch (error) {
+    return c.json({
+      success: false,
+      message: 'Lỗi khi lấy thông tin người dùng',
+      error: error.message
+    }, 500);
+  }
+});
+
+app.post('/api/auth/logout', async (c) => {
+  try {
+    return c.json({
+      success: true,
+      message: 'Đăng xuất thành công'
+    });
+  } catch (error) {
+    return c.json({
+      success: false,
+      message: 'Lỗi đăng xuất',
+      error: error.message
+    }, 500);
+  }
+});
+
 // ================================
 // ORDERS API
 // ================================

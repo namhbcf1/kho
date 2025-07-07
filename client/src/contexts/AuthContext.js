@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { message } from 'antd';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -16,154 +17,222 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
+  // Configure axios defaults
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete api.defaults.headers.common['Authorization'];
     }
-    setLoading(false);
+  }, [token]);
+
+  // Check authentication status on app load
+  useEffect(() => {
+    checkAuth();
   }, []);
 
-  const login = async (credentials) => {
+  const checkAuth = async () => {
     try {
-      const response = await fetch('https://pos-backend.bangachieu2.workers.dev/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setToken(data.token);
-        setUser(data.user);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        message.success('Login successful!');
-        return { success: true, user: data.user };
+      const response = await api.get('/auth/profile');
+      if (response.data && (response.data.user || response.data.data)) {
+        const userData = response.data.user || response.data.data;
+        
+        // Map field names
+        const mappedUserData = {
+          id: userData.id,
+          username: userData.username,
+          fullName: userData.fullName || userData.full_name,
+          email: userData.email,
+          role: userData.role,
+          permissions: userData.permissions
+        };
+        
+        setUser(mappedUserData);
       } else {
-        message.error(data.message || 'Login failed');
-        return { success: false, message: data.message };
+        logout();
       }
     } catch (error) {
-      message.error('Network error. Please try again.');
-      return { success: false, message: 'Network error' };
+      console.error('Auth check failed:', error);
+      logout();
+    } finally {
+      setLoading(false);
     }
   };
 
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    message.success('Logged out successfully');
+  const login = async (credentials) => {
+    try {
+      setLoading(true);
+      const response = await api.post('/auth/login', credentials);
+      
+      if (response.data && response.data.success) {
+        const { token: newToken, user: userData, data: userDataAlt } = response.data;
+        
+        // Handle both formats: {user: ...} or {data: ...}
+        const finalUserData = userData || userDataAlt;
+        
+        // Map field names (backend uses full_name, frontend expects fullName)
+        const mappedUserData = {
+          id: finalUserData.id,
+          username: finalUserData.username,
+          fullName: finalUserData.fullName || finalUserData.full_name,
+          email: finalUserData.email,
+          role: finalUserData.role,
+          permissions: finalUserData.permissions
+        };
+        
+        // Store token if provided
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          setToken(newToken);
+          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        }
+        
+        // Set user data
+        setUser(mappedUserData);
+        
+        message.success(`Chào mừng ${mappedUserData.fullName || mappedUserData.username}!`);
+        return { success: true };
+      } else {
+        throw new Error(response.data?.error || response.data?.message || 'Login failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message || 'Đăng nhập thất bại';
+      message.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      // Call logout API if token exists
+      if (token) {
+        await api.post('/auth/logout').catch(() => {
+          // Ignore logout API errors
+        });
+      }
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      // Clear local state regardless of API call result
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      delete api.defaults.headers.common['Authorization'];
+      message.success('Đã đăng xuất thành công');
+    }
   };
 
   const register = async (userData) => {
     try {
-      const response = await fetch('https://pos-backend.bangachieu2.workers.dev/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        message.success('Registration successful! Please wait for approval.');
+      setLoading(true);
+      const response = await api.post('/auth/register', userData);
+      
+      if (response.data && response.data.success) {
+        message.success('Tạo tài khoản thành công!');
         return { success: true };
       } else {
-        message.error(data.message || 'Registration failed');
-        return { success: false, message: data.message };
+        throw new Error(response.data?.error || 'Registration failed');
       }
     } catch (error) {
-      message.error('Network error. Please try again.');
-      return { success: false, message: 'Network error' };
-    }
-  };
-
-  const updateProfile = async (profileData) => {
-    try {
-      const response = await fetch('https://pos-backend.bangachieu2.workers.dev/api/auth/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(profileData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        message.success('Profile updated successfully!');
-        return { success: true, user: data.user };
-      } else {
-        message.error(data.message || 'Profile update failed');
-        return { success: false, message: data.message };
-      }
-    } catch (error) {
-      message.error('Network error. Please try again.');
-      return { success: false, message: 'Network error' };
+      const errorMessage = error.response?.data?.error || error.message || 'Tạo tài khoản thất bại';
+      message.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
   };
 
   const changePassword = async (passwordData) => {
     try {
-      const response = await fetch('https://pos-backend.bangachieu2.workers.dev/api/auth/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(passwordData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        message.success('Password changed successfully!');
+      setLoading(true);
+      const response = await api.post('/auth/change-password', passwordData);
+      
+      if (response.data && response.data.success) {
+        message.success('Đổi mật khẩu thành công!');
         return { success: true };
       } else {
-        message.error(data.message || 'Password change failed');
-        return { success: false, message: data.message };
+        throw new Error(response.data?.error || 'Change password failed');
       }
     } catch (error) {
-      message.error('Network error. Please try again.');
-      return { success: false, message: 'Network error' };
+      const errorMessage = error.response?.data?.error || error.message || 'Đổi mật khẩu thất bại';
+      message.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
   };
 
-  const hasPermission = (permission) => {
-    if (!user) return false;
-    if (user.role === 'admin') return true;
-    return user.permissions && user.permissions.includes(permission);
+  const updateProfile = async (profileData) => {
+    try {
+      setLoading(true);
+      const response = await api.put('/auth/profile', profileData);
+      
+      if (response.data && response.data.success) {
+        // Update user data locally
+        setUser(prev => ({ ...prev, ...profileData }));
+        message.success('Cập nhật thông tin thành công!');
+        return { success: true };
+      } else {
+        throw new Error(response.data?.error || 'Update profile failed');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message || 'Cập nhật thông tin thất bại';
+      message.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const isAuthenticated = () => {
-    return !!token && !!user;
+  // Role checking utilities
+  const hasRole = (roles) => {
+    if (!user || !user.role) return false;
+    return Array.isArray(roles) ? roles.includes(user.role) : user.role === roles;
   };
+
+  const isAdmin = () => hasRole('admin');
+  const isManager = () => hasRole(['admin', 'manager']);
+  const isCashier = () => hasRole(['admin', 'manager', 'cashier']);
+
+  // Permission checking
+  const canManageUsers = () => isAdmin();
+  const canManageProducts = () => isManager();
+  const canViewReports = () => isManager();
+  const canProcessOrders = () => isCashier();
 
   const value = {
+    // State
     user,
-    token,
     loading,
+    isAuthenticated: !!user,
+    token,
+    
+    // Actions
     login,
     logout,
     register,
-    updateProfile,
     changePassword,
-    hasPermission,
-    isAuthenticated,
+    updateProfile,
+    checkAuth,
+    
+    // Role utilities
+    hasRole,
+    isAdmin,
+    isManager,
+    isCashier,
+    
+    // Permission utilities
+    canManageUsers,
+    canManageProducts,
+    canViewReports,
+    canProcessOrders
   };
 
   return (
@@ -171,6 +240,27 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+// HOC for protected routes
+export const withAuth = (WrappedComponent, requiredRoles = null) => {
+  return function AuthenticatedComponent(props) {
+    const { isAuthenticated, hasRole, loading } = useAuth();
+
+    if (loading) {
+      return <div>Loading...</div>;
+    }
+
+    if (!isAuthenticated) {
+      return <div>Please login to access this page</div>;
+    }
+
+    if (requiredRoles && !hasRole(requiredRoles)) {
+      return <div>You don't have permission to access this page</div>;
+    }
+
+    return <WrappedComponent {...props} />;
+  };
 };
 
 export default AuthContext; 

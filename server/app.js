@@ -13,6 +13,7 @@ const customerRoutes = require('./routes/customers');
 const userRoutes = require('./routes/users');
 const financialRoutes = require('./routes/financial');
 const inventoryRoutes = require('./routes/inventory');
+const { router: authRoutes } = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/customers', customerRoutes);

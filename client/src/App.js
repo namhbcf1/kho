@@ -2,6 +2,8 @@ import React, { useState, useEffect, memo, useMemo, lazy, Suspense, useCallback 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout, Menu, Button, Avatar, Dropdown, Badge, Spin, Typography, Space, Tooltip } from 'antd';
 import smartMonitoring from './utils/smartMonitoring';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AuthWrapper from './components/AuthWrapper';
 import {
   ShoppingCartOutlined,
   UserOutlined,
@@ -318,11 +320,18 @@ const SmartNavigation = memo(({ collapsed, onToggle, currentPath }) => {
 
 // Smart Header Component with memo for performance
 const SmartHeader = memo(({ collapsed, onToggle }) => {
+  const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState([
     { id: 1, title: 'Đơn hàng mới', message: 'Có 3 đơn hàng mới cần xử lý', time: '2 phút trước', type: 'info' },
     { id: 2, title: 'Sản phẩm sắp hết', message: 'iPhone 15 Pro chỉ còn 2 chiếc', time: '5 phút trước', type: 'warning' },
     { id: 3, title: 'Thanh toán thành công', message: 'Đơn hàng #12345 đã được thanh toán', time: '10 phút trước', type: 'success' }
   ]);
+
+  const handleMenuClick = ({ key }) => {
+    if (key === 'logout') {
+      logout();
+    }
+  };
 
   const userMenuItems = [
     {
@@ -429,7 +438,7 @@ const SmartHeader = memo(({ collapsed, onToggle }) => {
 
         {/* User Menu */}
                 <Dropdown
-          menu={{ items: userMenuItems }}
+          menu={{ items: userMenuItems, onClick: handleMenuClick }}
           trigger={['click']}
                   placement="bottomRight"
         >
@@ -442,9 +451,9 @@ const SmartHeader = memo(({ collapsed, onToggle }) => {
               }} 
             />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <Text strong>Admin User</Text>
+              <Text strong>{user?.fullName || user?.username || 'User'}</Text>
               <Text type="secondary" style={{ fontSize: '11px' }}>
-                <StarOutlined /> Super Admin
+                <StarOutlined /> {user?.role === 'admin' ? 'Super Admin' : user?.role === 'manager' ? 'Manager' : 'Cashier'}
               </Text>
                       </div>
                     </Space>
@@ -456,6 +465,16 @@ const SmartHeader = memo(({ collapsed, onToggle }) => {
 
 // Main App Component
 function App() {
+  return (
+    <AuthProvider>
+      <AuthWrapper>
+        <MainApp />
+      </AuthWrapper>
+    </AuthProvider>
+  );
+}
+
+function MainApp() {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
 
