@@ -1,41 +1,205 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: "https://pos-backend.bangachieu2.workers.dev/api",
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  },
-});
-
-// Add JWT token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Enhanced API Service with fixed authentication
+class APIService {
+  constructor() {
+    this.baseURL = process.env.REACT_APP_API_URL || 'https://pos-backend.bangachieu2.workers.dev/api';
+    this.token = localStorage.getItem('auth_token');
+    this.tokenExpiry = localStorage.getItem('token_expiry');
   }
-);
 
-// Handle token expiration
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/';
-    }
-    return Promise.reject(error);
+  setToken(token, expiresIn = '24h') {
+    this.token = token;
+    // Set expiry time - 24 hours from now
+    const expiryTime = Date.now() + (24 * 60 * 60 * 1000);
+    this.tokenExpiry = expiryTime.toString();
+    
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('token_expiry', this.tokenExpiry);
   }
-);
 
+  clearToken() {
+    this.token = null;
+    this.tokenExpiry = null;
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token_expiry');
+    localStorage.removeItem('auth_user');
+  }
+
+  getAuthHeader() {
+    // Ensure token is valid and not undefined
+    if (!this.token || this.token === 'undefined' || this.token === 'null') {
+      return null;
+    }
+    return `Bearer ${this.token}`;
+  }
+
+  isTokenValid() {
+    if (!this.token || !this.tokenExpiry) return false;
+    
+    // Check if token is not undefined/null strings
+    if (this.token === 'undefined' || this.token === 'null') {
+      this.clearToken();
+      return false;
+    }
+    
+    const now = Date.now();
+    const expiry = parseInt(this.tokenExpiry);
+    
+    // Check if token expires in next 5 minutes
+    if (expiry <= (now + 5 * 60 * 1000)) {
+      this.clearToken();
+      return false;
+    }
+    
+    return true;
+  }
+
+  async request(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    };
+
+    // Add auth header if available and valid (but not for login endpoint)
+    if (endpoint !== '/auth/login' && this.isTokenValid()) {
+      const authHeader = this.getAuthHeader();
+      if (authHeader) {
+        config.headers.Authorization = authHeader;
+      }
+    }
+
+    try {
+      const response = await fetch(url, config);
+      
+      // Handle non-JSON responses
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = { success: false, message: 'Invalid response format' };
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Clear invalid token and redirect to login
+          this.clearToken();
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          throw new Error('Session expired');
+        }
+        throw new Error(data.message || `HTTP ${response.status}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('API request failed:', error);
+      
+      // Handle network errors
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Không thể kết nối đến server');
+      }
+      
+      throw error;
+    }
+  }
+
+  async login(username, password) {
+    try {
+      const response = await this.request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password })
+      });
+      
+      if (response.success) {
+        this.setToken(response.data.token, response.data.expiresIn);
+        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+        return response;
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  }
+
+  async logout() {
+    try {
+      if (this.isTokenValid()) {
+        await this.request('/auth/logout', { method: 'POST' });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      this.clearToken();
+    }
+  }
+
+  async getProfile() {
+    return this.request('/auth/profile');
+  }
+
+  async getProducts(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/products${query ? `?${query}` : ''}`);
+  }
+
+  async getProductSerialNumbers(productId) {
+    return this.request(`/products/${productId}/serial-numbers`);
+  }
+
+  async createOrder(orderData) {
+    return this.request('/orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData)
+    });
+  }
+
+  async getOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/orders${query ? `?${query}` : ''}`);
+  }
+
+  async getCustomers(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/customers${query ? `?${query}` : ''}`);
+  }
+
+  async getUsers(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/users${query ? `?${query}` : ''}`);
+  }
+
+  async getStats() {
+    return this.request('/orders/stats/summary');
+  }
+
+  // Utility methods
+  getCurrentUser() {
+    try {
+      const userStr = localStorage.getItem('auth_user');
+      if (!userStr || userStr === 'undefined' || userStr === 'null') {
+        return null;
+      }
+      return JSON.parse(userStr);
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+  }
+
+  isAuthenticated() {
+    return this.isTokenValid() && this.getCurrentUser() !== null;
+  }
+}
+
+export const api = new APIService();
 export default api;
 
 // Export utility functions
