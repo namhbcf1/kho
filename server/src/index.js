@@ -1,910 +1,1224 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
 
 const app = new Hono()
 
-// Global middleware
-app.use('*', logger())
-
-// CORS configuration - SỬA HOÀN TOÀN
-app.use('*', cors({
-  origin: (origin) => {
-    // Allow localhost for development
-    if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return origin
-    }
-    
-    // Allow your domains
-    const allowedDomains = [
-      'https://pos-frontend-fixed.pages.dev',
-      'https://bangachieu2.pages.dev',
-      'https://pos-backend.bangachieu2.workers.dev'
-    ]
-    
-    // Check if origin matches allowed domains or is a subdomain of pages.dev
-    if (allowedDomains.includes(origin) || origin?.endsWith('.pages.dev')) {
-      return origin
-    }
-    
-    return false
-  },
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With', 
-    'Accept', 
-    'Origin',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
-  ],
-  exposeHeaders: ['Content-Length', 'X-Request-Id'],
-  credentials: true,
-  maxAge: 86400
+// CORS middleware - Updated for broader compatibility
+app.use('/*', cors({
+  origin: '*', // Allow all origins for now
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: false,
 }))
 
-// Security headers
-app.use('*', async (c, next) => {
-  // Set security headers
-  c.header('X-Content-Type-Options', 'nosniff')
-  c.header('X-Frame-Options', 'DENY')
-  c.header('X-XSS-Protection', '1; mode=block')
-  c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
-  
-  // Content Security Policy - SỬA HOÀN TOÀN
-  const csp = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https:",
-    "connect-src 'self' https: wss:",
-    "media-src 'self' data:",
-    "object-src 'none'",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'"
-  ].join('; ')
-  
-  c.header('Content-Security-Policy', csp)
-  
-  await next()
-})
-
-// Mock data storage
-let products = [
-  {
-    id: '1',
-    name: 'Coca Cola 330ml',
-    price: 15000,
-    stock: 100,
-    barcode: '8934673014539',
-    category: 'Nước giải khát',
-    description: 'Nước ngọt Coca Cola 330ml',
-    image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=200',
-    created_at: '2024-01-01T00:00:00.000Z',
-    updated_at: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: '2',
-    name: 'Pepsi 330ml',
-    price: 14000,
-    stock: 85,
-    barcode: '8934673014540',
-    category: 'Nước giải khát',
-    description: 'Nước ngọt Pepsi 330ml',
-    image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=200',
-    created_at: '2024-01-01T00:00:00.000Z',
-    updated_at: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: '3',
-    name: 'Bánh mì thịt nguội',
-    price: 25000,
-    stock: 30,
-    barcode: '8934673014541',
-    category: 'Thực phẩm',
-    description: 'Bánh mì thịt nguội tươi ngon',
-    image: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=200',
-    created_at: '2024-01-01T00:00:00.000Z',
-    updated_at: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: '4',
-    name: 'Nước suối Lavie 500ml',
-    price: 8000,
-    stock: 200,
-    barcode: '8934673014542',
-    category: 'Nước giải khát',
-    description: 'Nước khoáng thiên nhiên Lavie',
-    image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=200',
-    created_at: '2024-01-01T00:00:00.000Z',
-    updated_at: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: '5',
-    name: 'Kẹo Alpenliebe',
-    price: 12000,
-    stock: 150,
-    barcode: '8934673014543',
-    category: 'Kẹo bánh',
-    description: 'Kẹo sữa Alpenliebe thơm ngon',
-    image: 'https://images.unsplash.com/photo-1587064071548-022331ffa2e1?w=200',
-    created_at: '2024-01-01T00:00:00.000Z',
-    updated_at: '2024-01-01T00:00:00.000Z'
-  }
-]
-
-let orders = []
-let orderItems = []
-
-// User data for authentication
-const users = [
-  {
-    id: '1',
-    email: 'admin@pos.com',
-    password: 'admin123',
-    name: 'Quản trị viên',
-    role: 'admin',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-    created_at: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: '2',
-    email: 'cashier@pos.com',
-    password: 'cashier123',
-    name: 'Thu ngân',
-    role: 'cashier',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616c9a016e6?w=100',
-    created_at: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: '3',
-    email: 'manager@pos.com',
-    password: 'manager123',
-    name: 'Quản lý',
-    role: 'manager',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-    created_at: '2024-01-01T00:00:00.000Z'
-  }
-]
-
-// Utility functions
-function generateId() {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9)
-}
-
-function createResponse(success, data = null, message = '', error = null) {
-  const response = {
-    success,
-    timestamp: new Date().toISOString()
-  }
-  
-  if (data !== null) response.data = data
-  if (message) response.message = message
-  if (error) response.error = error
-  
-  return response
-}
-
-function findUserByCredentials(email, password) {
-  return users.find(user => user.email === email && user.password === password)
-}
-
-// Health check endpoints
-app.get('/health', (c) => {
-  return c.json(createResponse(true, {
-    status: 'healthy',
-    version: '2.0.0',
-    uptime: process.uptime?.() || 0,
-    environment: c.env?.ENVIRONMENT || 'development'
-  }, 'POS Backend is running'))
-})
-
+// Health check
 app.get('/api/health', (c) => {
-  return c.json(createResponse(true, {
-    status: 'healthy',
-    endpoints: [
-      'GET /health',
-      'GET /api/health',
-      'POST /api/auth/login',
-      'POST /api/auth/logout',
-      'GET /api/auth/me',
-      'GET /api/products',
-      'POST /api/products',
-      'PUT /api/products/:id',
-      'DELETE /api/products/:id',
-      'GET /api/orders',
-      'POST /api/orders',
-      'GET /api/orders/:id',
-      'GET /api/dashboard/stats',
-      'GET /api/categories'
-    ]
-  }, 'API is healthy'))
+  return c.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'POS Computer Store API',
+    version: '2.0.0'
+  })
 })
 
-// ===== AUTHENTICATION ENDPOINTS =====
-
-// Login
-app.post('/api/auth/login', async (c) => {
-  try {
-    const contentType = c.req.header('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      return c.json(createResponse(false, null, '', 'Content-Type must be application/json'), 400)
-    }
-
-    const body = await c.req.json().catch(() => null)
-    if (!body) {
-      return c.json(createResponse(false, null, '', 'Invalid JSON body'), 400)
-    }
-
-    const { email, password } = body
-
-    if (!email || !password) {
-      return c.json(createResponse(false, null, '', 'Email và mật khẩu là bắt buộc'), 400)
-    }
-
-    const user = findUserByCredentials(email.trim().toLowerCase(), password)
-    if (!user) {
-      return c.json(createResponse(false, null, '', 'Email hoặc mật khẩu không đúng'), 401)
-    }
-
-    // Create token (simple implementation)
-    const token = `pos_token_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      avatar: user.avatar
-    }
-
-    return c.json(createResponse(true, {
-      user: userResponse,
-      token: token,
-      expires_in: 86400 // 24 hours
-    }, 'Đăng nhập thành công'))
-
-  } catch (error) {
-    console.error('Login error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi server khi đăng nhập'), 500)
+// ============= SUPPLIERS ENDPOINTS =============
+app.get('/api/suppliers', async (c) => {
+  const db = c.env.DB
+  const { search, status } = c.req.query()
+  
+  let query = 'SELECT * FROM suppliers WHERE 1=1'
+  const params = []
+  
+  if (search) {
+    query += ' AND (name LIKE ? OR code LIKE ? OR contact_person LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`)
   }
-})
-
-// Logout
-app.post('/api/auth/logout', async (c) => {
-  try {
-    return c.json(createResponse(true, null, 'Đăng xuất thành công'))
-  } catch (error) {
-    console.error('Logout error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi đăng xuất'), 500)
+  
+  if (status) {
+    query += ' AND status = ?'
+    params.push(status)
   }
+  
+  query += ' ORDER BY name'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
 })
 
-// Get current user
-app.get('/api/auth/me', async (c) => {
+app.post('/api/suppliers', async (c) => {
+  const db = c.env.DB
+  
   try {
-    const authHeader = c.req.header('Authorization')
+    const data = await c.req.json()
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return c.json(createResponse(false, null, '', 'Token không hợp lệ'), 401)
-    }
-
-    const token = authHeader.substring(7)
+    const result = await db.prepare(`
+      INSERT INTO suppliers (name, code, contact_person, phone, email, address, tax_code, payment_terms, notes, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.name || null,
+      data.code || null,
+      data.contact_person || null,
+      data.phone || null,
+      data.email || null,
+      data.address || null,
+      data.tax_code || null,
+      data.payment_terms || null,
+      data.notes || null,
+      data.status || 'active'
+    ).run()
     
-    // Simple token validation (in production, use proper JWT)
-    if (!token.startsWith('pos_token_')) {
-      return c.json(createResponse(false, null, '', 'Token không hợp lệ'), 401)
-    }
-
-    // Extract user ID from token
-    const tokenParts = token.split('_')
-    if (tokenParts.length < 3) {
-      return c.json(createResponse(false, null, '', 'Token không hợp lệ'), 401)
-    }
-
-    const userId = tokenParts[2]
-    const user = users.find(u => u.id === userId)
-
-    if (!user) {
-      return c.json(createResponse(false, null, '', 'Người dùng không tồn tại'), 401)
-    }
-
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      avatar: user.avatar
-    }
-
-    return c.json(createResponse(true, { user: userResponse }))
-
+    return c.json({ id: result.meta.last_row_id, ...data })
   } catch (error) {
-    console.error('Get user error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy thông tin người dùng'), 500)
+    console.error('Supplier creation error:', error)
+    return c.json({ error: 'Failed to create supplier: ' + error.message }, 500)
   }
 })
 
-// ===== PRODUCTS ENDPOINTS =====
+app.put('/api/suppliers/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  await db.prepare(`
+    UPDATE suppliers SET name = ?, code = ?, contact_person = ?, phone = ?, email = ?,
+    address = ?, tax_code = ?, payment_terms = ?, notes = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(
+    data.name, data.code, data.contact_person, data.phone, data.email,
+    data.address, data.tax_code, data.payment_terms, data.notes, data.status, id
+  ).run()
+  
+  return c.json({ id, ...data })
+})
 
-// Get all products
+// ============= INVENTORY LOCATIONS ENDPOINTS =============
+app.get('/api/inventory-locations', async (c) => {
+  const db = c.env.DB
+  const { type, status } = c.req.query()
+  
+  let query = 'SELECT * FROM inventory_locations WHERE 1=1'
+  const params = []
+  
+  if (type) {
+    query += ' AND type = ?'
+    params.push(type)
+  }
+  
+  if (status) {
+    query += ' AND status = ?'
+    params.push(status)
+  }
+  
+  query += ' ORDER BY name'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/inventory-locations', async (c) => {
+  const db = c.env.DB
+  
+  try {
+    const data = await c.req.json()
+    
+    const result = await db.prepare(`
+      INSERT INTO inventory_locations (name, code, type, address, manager_name, phone, capacity, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.name || null,
+      data.code || null,
+      data.type || null,
+      data.address || null,
+      data.manager_name || null,
+      data.phone || null,
+      data.capacity || null,
+      data.status || 'active'
+    ).run()
+    
+    return c.json({ id: result.meta.last_row_id, ...data })
+  } catch (error) {
+    console.error('Inventory location creation error:', error)
+    return c.json({ error: 'Failed to create inventory location: ' + error.message }, 500)
+  }
+})
+
+// ============= SERIAL NUMBERS ENDPOINTS =============
+app.get('/api/serial-numbers', async (c) => {
+  const db = c.env.DB
+  const { product_id, status, search, location } = c.req.query()
+  
+  let query = `
+    SELECT sn.*, p.name as product_name, p.sku, s.name as supplier_name,
+           p.warranty_months, p.category_id, p.brand_id
+    FROM serial_numbers sn
+    LEFT JOIN products p ON sn.product_id = p.id
+    LEFT JOIN suppliers s ON sn.supplier_id = s.id
+    WHERE 1=1
+  `
+  const params = []
+  
+  if (product_id) {
+    query += ' AND sn.product_id = ?'
+    params.push(product_id)
+  }
+  
+  if (status) {
+    query += ' AND sn.status = ?'
+    params.push(status)
+  }
+  
+  if (location) {
+    query += ' AND sn.location LIKE ?'
+    params.push(`%${location}%`)
+  }
+  
+  if (search) {
+    query += ' AND (sn.serial_number LIKE ? OR sn.imei LIKE ? OR p.name LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`)
+  }
+  
+  query += ' ORDER BY sn.created_at DESC'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/serial-numbers', async (c) => {
+  const db = c.env.DB
+  
+  try {
+    const data = await c.req.json()
+    
+    // Handle undefined/null values properly
+    const result = await db.prepare(`
+      INSERT INTO serial_numbers (
+        product_id, serial_number, imei, mac_address, batch_number,
+        manufacturing_date, import_date, supplier_id, purchase_price,
+        selling_price, status, location, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.product_id || null,
+      data.serial_number || null,
+      data.imei || null,
+      data.mac_address || null,
+      data.batch_number || null,
+      data.manufacturing_date || null,
+      data.import_date || new Date().toISOString().split('T')[0],
+      data.supplier_id || null,
+      data.purchase_price || null,
+      data.selling_price || null,
+      data.status || 'in_stock',
+      data.location || null,
+      data.notes || null
+    ).run()
+    
+    return c.json({ id: result.meta.last_row_id, ...data })
+  } catch (error) {
+    console.error('Serial numbers creation error:', error)
+    return c.json({ error: 'Failed to create serial number: ' + error.message }, 500)
+  }
+})
+
+app.put('/api/serial-numbers/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  try {
+    const data = await c.req.json()
+    
+    await db.prepare(`
+      UPDATE serial_numbers SET
+        product_id = ?, serial_number = ?, imei = ?, mac_address = ?,
+        batch_number = ?, manufacturing_date = ?, import_date = ?,
+        supplier_id = ?, purchase_price = ?, selling_price = ?,
+        status = ?, location = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      data.product_id || null,
+      data.serial_number || null,
+      data.imei || null,
+      data.mac_address || null,
+      data.batch_number || null,
+      data.manufacturing_date || null,
+      data.import_date || null,
+      data.supplier_id || null,
+      data.purchase_price || null,
+      data.selling_price || null,
+      data.status || 'in_stock',
+      data.location || null,
+      data.notes || null,
+      id
+    ).run()
+    
+    return c.json({ id, ...data })
+  } catch (error) {
+    console.error('Serial numbers update error:', error)
+    return c.json({ error: 'Failed to update serial number: ' + error.message }, 500)
+  }
+})
+
+app.delete('/api/serial-numbers/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  await db.prepare('DELETE FROM serial_numbers WHERE id = ?').bind(id).run()
+  return c.json({ message: 'Serial number deleted' })
+})
+
+// ============= WARRANTY CLAIMS ENDPOINTS =============
+app.get('/api/warranty-claims', async (c) => {
+  const db = c.env.DB
+  const { status, customer_id, claim_type } = c.req.query()
+  
+  let query = `
+    SELECT wc.*, sn.serial_number, sn.product_id, p.name as product_name,
+           c.name as customer_name, c.phone as customer_phone
+    FROM warranty_claims wc
+    LEFT JOIN serial_numbers sn ON wc.serial_number_id = sn.id
+    LEFT JOIN products p ON sn.product_id = p.id
+    LEFT JOIN customers c ON wc.customer_id = c.id
+    WHERE 1=1
+  `
+  const params = []
+  
+  if (status) {
+    query += ' AND wc.status = ?'
+    params.push(status)
+  }
+  
+  if (customer_id) {
+    query += ' AND wc.customer_id = ?'
+    params.push(customer_id)
+  }
+  
+  if (claim_type) {
+    query += ' AND wc.claim_type = ?'
+    params.push(claim_type)
+  }
+  
+  query += ' ORDER BY wc.claim_date DESC'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/warranty-claims', async (c) => {
+  const db = c.env.DB
+  
+  try {
+    const data = await c.req.json()
+    
+    // Generate claim number
+    const claimNumber = `WC${Date.now()}`
+    
+    const result = await db.prepare(`
+      INSERT INTO warranty_claims (
+        serial_number_id, customer_id, claim_number, issue_description,
+        claim_date, warranty_start_date, warranty_end_date, claim_type,
+        status, resolution, cost, technician_notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.serial_number_id || null,
+      data.customer_id || null,
+      claimNumber,
+      data.issue_description || null,
+      data.claim_date || new Date().toISOString().split('T')[0],
+      data.warranty_start_date || null,
+      data.warranty_end_date || null,
+      data.claim_type || null,
+      data.status || 'pending',
+      data.resolution || null,
+      data.cost || null,
+      data.technician_notes || null
+    ).run()
+    
+    return c.json({ id: result.meta.last_row_id, claim_number: claimNumber, ...data })
+  } catch (error) {
+    console.error('Warranty claim creation error:', error)
+    return c.json({ error: 'Failed to create warranty claim: ' + error.message }, 500)
+  }
+})
+
+app.put('/api/warranty-claims/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  await db.prepare(`
+    UPDATE warranty_claims SET
+      issue_description = ?, claim_type = ?, status = ?, resolution = ?,
+      resolution_date = ?, cost = ?, technician_notes = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(
+    data.issue_description, data.claim_type, data.status, data.resolution,
+    data.resolution_date, data.cost, data.technician_notes, id
+  ).run()
+  
+  return c.json({ id, ...data })
+})
+
+// ============= STOCK ALERTS ENDPOINTS =============
+app.get('/api/stock-alerts', async (c) => {
+  const db = c.env.DB
+  const { is_active, alert_type } = c.req.query()
+  
+  let query = `
+    SELECT sa.*, p.name as product_name, p.sku, p.stock as current_stock
+    FROM stock_alerts sa
+    LEFT JOIN products p ON sa.product_id = p.id
+    WHERE 1=1
+  `
+  const params = []
+  
+  if (is_active !== undefined) {
+    query += ' AND sa.is_active = ?'
+    params.push(is_active === 'true' ? 1 : 0)
+  }
+  
+  if (alert_type) {
+    query += ' AND sa.alert_type = ?'
+    params.push(alert_type)
+  }
+  
+  query += ' ORDER BY sa.created_at DESC'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/stock-alerts', async (c) => {
+  const db = c.env.DB
+  const data = await c.req.json()
+  
+  const result = await db.prepare(`
+    INSERT INTO stock_alerts (product_id, alert_type, threshold_value, current_value, message, is_active)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(
+    data.product_id, data.alert_type, data.threshold_value,
+    data.current_value, data.message, data.is_active !== false ? 1 : 0
+  ).run()
+  
+  return c.json({ id: result.meta.last_row_id, ...data })
+})
+
+// ============= DASHBOARD STATS =============
+app.get('/api/dashboard/stats', async (c) => {
+  const db = c.env.DB
+  
+  try {
+    // Basic stats
+    const todayStats = await db.prepare(`
+      SELECT 
+        COUNT(*) as today_orders,
+        COALESCE(SUM(total), 0) as today_revenue
+      FROM orders 
+      WHERE DATE(created_at) = DATE('now')
+    `).first()
+
+    const monthStats = await db.prepare(`
+      SELECT 
+        COUNT(*) as month_orders,
+        COALESCE(SUM(total), 0) as month_revenue
+      FROM orders 
+      WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+    `).first()
+
+    // Simple stats response
+    return c.json({
+      todayOrders: todayStats.today_orders || 0,
+      todayRevenue: todayStats.today_revenue || 0,
+      monthOrders: monthStats.month_orders || 0,
+      monthRevenue: monthStats.month_revenue || 0,
+      totalProducts: 0,
+      lowStockCount: 0
+    })
+  } catch (error) {
+    console.error('Dashboard stats error:', error)
+    return c.json({ error: 'Failed to fetch dashboard stats' }, 500)
+  }
+})
+
+// ============= ENHANCED DASHBOARD STATS =============
+app.get('/api/dashboard/advanced-stats', async (c) => {
+  const db = c.env.DB
+  
+  try {
+    // Basic stats
+    const todayStats = await db.prepare(`
+      SELECT 
+        COUNT(*) as today_orders,
+        COALESCE(SUM(total), 0) as today_revenue
+      FROM orders 
+      WHERE DATE(created_at) = DATE('now')
+    `).first()
+
+    const monthStats = await db.prepare(`
+      SELECT 
+        COUNT(*) as month_orders,
+        COALESCE(SUM(total), 0) as month_revenue
+      FROM orders 
+      WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+    `).first()
+
+    // Inventory stats
+    const inventoryStats = await db.prepare(`
+      SELECT 
+        COUNT(DISTINCT p.id) as total_products,
+        COALESCE(SUM(p.stock), 0) as total_stock,
+        COUNT(CASE WHEN p.stock <= 5 THEN 1 END) as low_stock_count,
+        COUNT(sn.id) as total_serial_numbers,
+        COUNT(CASE WHEN sn.status = 'in_stock' THEN 1 END) as available_serials
+      FROM products p
+      LEFT JOIN serial_numbers sn ON p.id = sn.product_id
+    `).first()
+
+    // Warranty stats
+    const warrantyStats = await db.prepare(`
+      SELECT 
+        COUNT(*) as total_warranty_claims,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_claims,
+        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as active_claims,
+        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_claims
+      FROM warranty_claims
+    `).first()
+
+    // Active alerts
+    const alertsCount = await db.prepare(`
+      SELECT COUNT(*) as active_alerts
+      FROM stock_alerts 
+      WHERE is_active = 1
+    `).first()
+
+    // Top products by sales
+    const topProducts = await db.prepare(`
+      SELECT p.name, p.sku, p.images, COUNT(oi.id) as sales_count, SUM(oi.quantity) as total_sold
+      FROM products p
+      LEFT JOIN order_items oi ON p.id = oi.product_id
+      LEFT JOIN orders o ON oi.order_id = o.id
+      WHERE o.status = 'completed'
+      GROUP BY p.id, p.name, p.sku, p.images
+      ORDER BY sales_count DESC
+      LIMIT 5
+    `).all()
+
+    // Parse images for top products
+    const topProductsWithImages = topProducts.results?.map(product => ({
+      ...product,
+      images: product.images ? JSON.parse(product.images) : [],
+      soldCount: product.total_sold || 0
+    })) || []
+
+    // If no sales data, get some recent products instead
+    let finalTopProducts = topProductsWithImages
+    if (finalTopProducts.length === 0) {
+      const recentProducts = await db.prepare(`
+        SELECT p.name, p.sku, p.images, 0 as sales_count, 0 as total_sold
+        FROM products p
+        WHERE p.status = 'active'
+        ORDER BY p.created_at DESC
+        LIMIT 5
+      `).all()
+      
+      finalTopProducts = recentProducts.results?.map(product => ({
+        ...product,
+        images: product.images ? JSON.parse(product.images) : [],
+        soldCount: 0
+      })) || []
+    }
+
+    // Recent warranty claims
+    const recentWarrantyClaims = await db.prepare(`
+      SELECT wc.*, sn.serial_number, p.name as product_name, c.name as customer_name
+      FROM warranty_claims wc
+      LEFT JOIN serial_numbers sn ON wc.serial_number_id = sn.id
+      LEFT JOIN products p ON sn.product_id = p.id
+      LEFT JOIN customers c ON wc.customer_id = c.id
+      ORDER BY wc.created_at DESC
+      LIMIT 5
+    `).all()
+
+    return c.json({
+      // Basic stats
+      todayOrders: todayStats.today_orders,
+      todayRevenue: todayStats.today_revenue,
+      monthOrders: monthStats.month_orders,
+      monthRevenue: monthStats.month_revenue,
+      
+      // Inventory stats
+      totalProducts: inventoryStats.total_products,
+      totalStock: inventoryStats.total_stock,
+      lowStockCount: inventoryStats.low_stock_count,
+      totalSerialNumbers: inventoryStats.total_serial_numbers,
+      availableSerials: inventoryStats.available_serials,
+      
+      // Warranty stats
+      totalWarrantyClaims: warrantyStats.total_warranty_claims,
+      pendingClaims: warrantyStats.pending_claims,
+      activeClaims: warrantyStats.active_claims,
+      completedClaims: warrantyStats.completed_claims,
+      
+      // Alerts
+      activeAlerts: alertsCount.active_alerts,
+      
+      // Lists
+      topProducts: finalTopProducts,
+      recentWarrantyClaims: recentWarrantyClaims.results || []
+    })
+  } catch (error) {
+    console.error('Dashboard stats error:', error)
+    return c.json({ error: 'Failed to fetch dashboard stats' }, 500)
+  }
+})
+
+// ============= EXISTING ENDPOINTS (Categories, Brands, Products, etc.) =============
+
+// Categories endpoints
+app.get('/api/categories', async (c) => {
+  const db = c.env.DB
+  const { results } = await db.prepare('SELECT * FROM categories ORDER BY name').all()
+  return c.json(results)
+})
+
+app.post('/api/categories', async (c) => {
+  const db = c.env.DB
+  const { name, description } = await c.req.json()
+  const slug = name.toLowerCase().replace(/\s+/g, '-')
+  
+  const result = await db.prepare(
+    'INSERT INTO categories (name, slug, description) VALUES (?, ?, ?)'
+  ).bind(name, slug, description).run()
+  
+  return c.json({ id: result.meta.last_row_id, name, slug, description })
+})
+
+// Brands endpoints
+app.get('/api/brands', async (c) => {
+  const db = c.env.DB
+  const { results } = await db.prepare('SELECT * FROM brands ORDER BY name').all()
+  return c.json(results)
+})
+
+app.post('/api/brands', async (c) => {
+  const db = c.env.DB
+  const { name, logo_url } = await c.req.json()
+  const slug = name.toLowerCase().replace(/\s+/g, '-')
+  
+  const result = await db.prepare(
+    'INSERT INTO brands (name, slug, logo_url) VALUES (?, ?, ?)'
+  ).bind(name, slug, logo_url).run()
+  
+  return c.json({ id: result.meta.last_row_id, name, slug, logo_url })
+})
+
+// Products endpoints (enhanced)
 app.get('/api/products', async (c) => {
-  try {
-    const { search, category, page = 1, limit = 20, sort = 'created_at', order = 'desc' } = c.req.query()
-    
-    let filteredProducts = [...products]
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase()
-      filteredProducts = filteredProducts.filter(product => 
-        product.name.toLowerCase().includes(searchLower) ||
-        product.barcode.includes(search) ||
-        product.description.toLowerCase().includes(searchLower) ||
-        product.category.toLowerCase().includes(searchLower)
-      )
-    }
-    
-    // Category filter
-    if (category && category !== 'all') {
-      filteredProducts = filteredProducts.filter(product => 
-        product.category === category
-      )
-    }
-    
-    // Sorting
-    filteredProducts.sort((a, b) => {
-      let aVal = a[sort]
-      let bVal = b[sort]
-      
-      if (sort === 'price' || sort === 'stock') {
-        aVal = Number(aVal)
-        bVal = Number(bVal)
-      }
-      
-      if (order === 'desc') {
-        return aVal > bVal ? -1 : 1
-      } else {
-        return aVal < bVal ? -1 : 1
-      }
-    })
-    
-    // Pagination
-    const pageNum = parseInt(page)
-    const limitNum = parseInt(limit)
-    const startIndex = (pageNum - 1) * limitNum
-    const endIndex = startIndex + limitNum
-    const paginatedProducts = filteredProducts.slice(startIndex, endIndex)
-    
-    return c.json(createResponse(true, {
-      products: paginatedProducts,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: filteredProducts.length,
-        totalPages: Math.ceil(filteredProducts.length / limitNum),
-        hasNext: endIndex < filteredProducts.length,
-        hasPrev: pageNum > 1
-      }
-    }))
-
-  } catch (error) {
-    console.error('Get products error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy danh sách sản phẩm'), 500)
+  const db = c.env.DB
+  const { category, brand, status, search } = c.req.query()
+  
+  let query = `
+    SELECT p.*, c.name as category_name, b.name as brand_name,
+           COUNT(sn.id) as serial_count,
+           COUNT(CASE WHEN sn.status = 'in_stock' THEN 1 END) as available_serials
+    FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.id 
+    LEFT JOIN brands b ON p.brand_id = b.id 
+    LEFT JOIN serial_numbers sn ON p.id = sn.product_id
+    WHERE 1=1
+  `
+  const params = []
+  
+  if (category) {
+    query += ' AND p.category_id = ?'
+    params.push(category)
   }
+  
+  if (brand) {
+    query += ' AND p.brand_id = ?'
+    params.push(brand)
+  }
+  
+  if (status) {
+    query += ' AND p.status = ?'
+    params.push(status)
+  }
+  
+  if (search) {
+    query += ' AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`)
+  }
+  
+  query += ' GROUP BY p.id ORDER BY p.created_at DESC'
+  
+  const stmt = db.prepare(query)
+  const { results } = await stmt.bind(...params).all()
+  
+  // Parse JSON fields
+  const products = results.map(p => ({
+    ...p,
+    specifications: p.specifications ? JSON.parse(p.specifications) : {},
+    images: p.images ? JSON.parse(p.images) : []
+  }))
+  
+  return c.json(products)
 })
 
-// Get product by ID
 app.get('/api/products/:id', async (c) => {
-  try {
-    const { id } = c.req.param()
-    const product = products.find(p => p.id === id)
-    
-    if (!product) {
-      return c.json(createResponse(false, null, '', 'Không tìm thấy sản phẩm'), 404)
-    }
-    
-    return c.json(createResponse(true, { product }))
-
-  } catch (error) {
-    console.error('Get product error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy thông tin sản phẩm'), 500)
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  const result = await db.prepare(`
+    SELECT p.*, c.name as category_name, b.name as brand_name 
+    FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.id 
+    LEFT JOIN brands b ON p.brand_id = b.id 
+    WHERE p.id = ?
+  `).bind(id).first()
+  
+  if (!result) {
+    return c.json({ error: 'Product not found' }, 404)
   }
+  
+  result.specifications = result.specifications ? JSON.parse(result.specifications) : {}
+  result.images = result.images ? JSON.parse(result.images) : []
+  
+  return c.json(result)
 })
 
-// Create product
 app.post('/api/products', async (c) => {
+  const db = c.env.DB
+  
   try {
-    const body = await c.req.json().catch(() => null)
-    if (!body) {
-      return c.json(createResponse(false, null, '', 'Dữ liệu không hợp lệ'), 400)
-    }
-
-    const { name, price, stock, barcode, category, description, image } = body
+    const data = await c.req.json()
     
-    // Validation
-    if (!name || !name.trim()) {
-      return c.json(createResponse(false, null, '', 'Tên sản phẩm là bắt buộc'), 400)
-    }
+    const slug = (data.name || 'product').toLowerCase().replace(/\s+/g, '-')
+    const specifications = JSON.stringify(data.specifications || {})
+    const images = JSON.stringify(data.images || [])
     
-    if (!price || isNaN(price) || Number(price) <= 0) {
-      return c.json(createResponse(false, null, '', 'Giá sản phẩm phải là số dương'), 400)
-    }
+    const result = await db.prepare(`
+      INSERT INTO products (
+        sku, barcode, name, slug, category_id, brand_id, 
+        description, specifications, price, sale_price, cost, 
+        stock, status, images, warranty_months
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.sku || null,
+      data.barcode || null,
+      data.name || null,
+      slug,
+      data.category_id || null,
+      data.brand_id || null,
+      data.description || null,
+      specifications,
+      data.price || null,
+      data.sale_price || null,
+      data.cost || null,
+      data.stock || 0,
+      data.status || 'active',
+      images,
+      data.warranty_months || 12
+    ).run()
     
-    if (stock === undefined || isNaN(stock) || Number(stock) < 0) {
-      return c.json(createResponse(false, null, '', 'Số lượng tồn kho phải là số không âm'), 400)
-    }
-    
-    // Check if barcode already exists
-    if (barcode && products.some(p => p.barcode === barcode)) {
-      return c.json(createResponse(false, null, '', 'Mã vạch đã tồn tại'), 400)
-    }
-    
-    const newProduct = {
-      id: generateId(),
-      name: name.trim(),
-      price: Number(price),
-      stock: Number(stock),
-      barcode: barcode || generateId(),
-      category: category || 'Khác',
-      description: description || '',
-      image: image || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-    
-    products.push(newProduct)
-    
-    return c.json(createResponse(true, { product: newProduct }, 'Tạo sản phẩm thành công'), 201)
-
+    return c.json({ id: result.meta.last_row_id, ...data })
   } catch (error) {
-    console.error('Create product error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi tạo sản phẩm'), 500)
+    console.error('Products creation error:', error)
+    return c.json({ error: 'Failed to create product: ' + error.message }, 500)
   }
 })
 
-// Update product
 app.put('/api/products/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
   try {
-    const { id } = c.req.param()
-    const body = await c.req.json().catch(() => null)
+    const data = await c.req.json()
     
-    if (!body) {
-      return c.json(createResponse(false, null, '', 'Dữ liệu không hợp lệ'), 400)
-    }
+    const specifications = JSON.stringify(data.specifications || {})
+    const images = JSON.stringify(data.images || [])
     
-    const productIndex = products.findIndex(p => p.id === id)
-    if (productIndex === -1) {
-      return c.json(createResponse(false, null, '', 'Không tìm thấy sản phẩm'), 404)
-    }
+    await db.prepare(`
+      UPDATE products SET 
+        sku = ?, barcode = ?, name = ?, category_id = ?, brand_id = ?, 
+        description = ?, specifications = ?, price = ?, sale_price = ?, 
+        cost = ?, stock = ?, status = ?, images = ?, warranty_months = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      data.sku, data.barcode, data.name, data.category_id, data.brand_id,
+      data.description, specifications, data.price, data.sale_price,
+      data.cost, data.stock, data.status, images, data.warranty_months, id
+    ).run()
     
-    // Validation for updated fields
-    if (body.price !== undefined && (isNaN(body.price) || Number(body.price) <= 0)) {
-      return c.json(createResponse(false, null, '', 'Giá sản phẩm phải là số dương'), 400)
-    }
-    
-    if (body.stock !== undefined && (isNaN(body.stock) || Number(body.stock) < 0)) {
-      return c.json(createResponse(false, null, '', 'Số lượng tồn kho phải là số không âm'), 400)
-    }
-    
-    // Check barcode uniqueness
-    if (body.barcode && products.some(p => p.id !== id && p.barcode === body.barcode)) {
-      return c.json(createResponse(false, null, '', 'Mã vạch đã tồn tại'), 400)
-    }
-    
-    const updatedProduct = {
-      ...products[productIndex],
-      ...body,
-      id, // Ensure ID doesn't change
-      updated_at: new Date().toISOString()
-    }
-    
-    products[productIndex] = updatedProduct
-    
-    return c.json(createResponse(true, { product: updatedProduct }, 'Cập nhật sản phẩm thành công'))
-
+    return c.json({ id, ...data })
   } catch (error) {
-    console.error('Update product error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi cập nhật sản phẩm'), 500)
+    console.error('Products update error:', error)
+    return c.json({ error: 'Failed to update product: ' + error.message }, 500)
   }
 })
 
-// Delete product
 app.delete('/api/products/:id', async (c) => {
-  try {
-    const { id } = c.req.param()
-    const productIndex = products.findIndex(p => p.id === id)
-    
-    if (productIndex === -1) {
-      return c.json(createResponse(false, null, '', 'Không tìm thấy sản phẩm'), 404)
-    }
-    
-    const deletedProduct = products[productIndex]
-    products.splice(productIndex, 1)
-    
-    return c.json(createResponse(true, { product: deletedProduct }, 'Xóa sản phẩm thành công'))
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  await db.prepare('DELETE FROM products WHERE id = ?').bind(id).run()
+  
+  return c.json({ message: 'Product deleted' })
+})
 
+// Customers endpoints
+app.get('/api/customers', async (c) => {
+  const db = c.env.DB
+  const { search } = c.req.query()
+  
+  let query = 'SELECT * FROM customers WHERE 1=1'
+  const params = []
+  
+  if (search) {
+    query += ' AND (name LIKE ? OR phone LIKE ? OR email LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`)
+  }
+  
+  query += ' ORDER BY created_at DESC'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/customers', async (c) => {
+  const db = c.env.DB
+  
+  try {
+    const data = await c.req.json()
+    
+    const result = await db.prepare(`
+      INSERT INTO customers (name, phone, email, address, notes) 
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      data.name || null,
+      data.phone || null,
+      data.email || null,
+      data.address || null,
+      data.notes || null
+    ).run()
+    
+    return c.json({ id: result.meta.last_row_id, ...data })
   } catch (error) {
-    console.error('Delete product error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi xóa sản phẩm'), 500)
+    console.error('Customer creation error:', error)
+    return c.json({ error: 'Failed to create customer: ' + error.message }, 500)
   }
 })
 
-// ===== ORDERS ENDPOINTS =====
+app.put('/api/customers/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  try {
+    const data = await c.req.json()
+    
+    await db.prepare(`
+      UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(data.name, data.phone, data.email, data.address, data.notes, id).run()
+    
+    return c.json({ id, ...data })
+  } catch (error) {
+    console.error('Customer update error:', error)
+    return c.json({ error: 'Failed to update customer: ' + error.message }, 500)
+  }
+})
 
-// Get all orders
+app.delete('/api/customers/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  try {
+    await db.prepare('DELETE FROM customers WHERE id = ?').bind(id).run()
+    return c.json({ message: 'Customer deleted' })
+  } catch (error) {
+    console.error('Customer deletion error:', error)
+    return c.json({ error: 'Failed to delete customer: ' + error.message }, 500)
+  }
+})
+
+// Orders endpoints
 app.get('/api/orders', async (c) => {
-  try {
-    const { page = 1, limit = 20, status, start_date, end_date, sort = 'created_at', order = 'desc' } = c.req.query()
-    
-    let filteredOrders = [...orders]
-    
-    // Filter by status
-    if (status && status !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.status === status)
-    }
-    
-    // Filter by date range
-    if (start_date) {
-      filteredOrders = filteredOrders.filter(order => 
-        new Date(order.created_at) >= new Date(start_date)
-      )
-    }
-    
-    if (end_date) {
-      filteredOrders = filteredOrders.filter(order => 
-        new Date(order.created_at) <= new Date(end_date)
-      )
-    }
-    
-    // Sorting
-    filteredOrders.sort((a, b) => {
-      let aVal = a[sort]
-      let bVal = b[sort]
-      
-      if (sort === 'total') {
-        aVal = Number(aVal)
-        bVal = Number(bVal)
-      }
-      
-      if (order === 'desc') {
-        return aVal > bVal ? -1 : 1
-      } else {
-        return aVal < bVal ? -1 : 1
-      }
-    })
-    
-    // Pagination
-    const pageNum = parseInt(page)
-    const limitNum = parseInt(limit)
-    const startIndex = (pageNum - 1) * limitNum
-    const endIndex = startIndex + limitNum
-    const paginatedOrders = filteredOrders.slice(startIndex, endIndex)
-    
-    return c.json(createResponse(true, {
-      orders: paginatedOrders,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: filteredOrders.length,
-        totalPages: Math.ceil(filteredOrders.length / limitNum),
-        hasNext: endIndex < filteredOrders.length,
-        hasPrev: pageNum > 1
-      }
-    }))
-
-  } catch (error) {
-    console.error('Get orders error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy danh sách đơn hàng'), 500)
+  const db = c.env.DB
+  const { status, payment_status, from, to } = c.req.query()
+  
+  let query = `
+    SELECT o.*, c.name as customer_name 
+    FROM orders o 
+    LEFT JOIN customers c ON o.customer_id = c.id 
+    WHERE 1=1
+  `
+  const params = []
+  
+  if (status) {
+    query += ' AND o.status = ?'
+    params.push(status)
   }
+  
+  if (payment_status) {
+    query += ' AND o.payment_status = ?'
+    params.push(payment_status)
+  }
+  
+  if (from) {
+    query += ' AND o.created_at >= ?'
+    params.push(from)
+  }
+  
+  if (to) {
+    query += ' AND o.created_at <= ?'
+    params.push(to)
+  }
+  
+  query += ' ORDER BY o.created_at DESC'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
 })
 
-// Get order by ID
 app.get('/api/orders/:id', async (c) => {
-  try {
-    const { id } = c.req.param()
-    const order = orders.find(o => o.id === id)
-    
-    if (!order) {
-      return c.json(createResponse(false, null, '', 'Không tìm thấy đơn hàng'), 404)
-    }
-    
-    // Get order items
-    const items = orderItems.filter(item => item.order_id === id)
-    
-    return c.json(createResponse(true, {
-      order: {
-        ...order,
-        items
-      }
-    }))
-
-  } catch (error) {
-    console.error('Get order error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy thông tin đơn hàng'), 500)
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  const order = await db.prepare(`
+    SELECT o.*, c.name as customer_name 
+    FROM orders o 
+    LEFT JOIN customers c ON o.customer_id = c.id 
+    WHERE o.id = ?
+  `).bind(id).first()
+  
+  if (!order) {
+    return c.json({ error: 'Order not found' }, 404)
   }
+  
+  const { results: items } = await db.prepare(`
+    SELECT oi.*, p.name as product_name, p.sku, p.images 
+    FROM order_items oi 
+    LEFT JOIN products p ON oi.product_id = p.id 
+    WHERE oi.order_id = ?
+  `).bind(id).all()
+  
+  order.items = items.map(item => ({
+    ...item,
+    images: item.images ? JSON.parse(item.images) : []
+  }))
+  
+  return c.json(order)
 })
 
-// Create order
 app.post('/api/orders', async (c) => {
+  const db = c.env.DB
+  
   try {
-    const body = await c.req.json().catch(() => null)
-    if (!body) {
-      return c.json(createResponse(false, null, '', 'Dữ liệu không hợp lệ'), 400)
-    }
-
-    const { 
-      items, 
-      payment_method = 'cash', 
-      customer_name = 'Khách lẻ', 
-      discount = 0, 
-      discount_amount = 0,
-      notes = '',
-      cashier_id = '1'
-    } = body
+    const data = await c.req.json()
     
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return c.json(createResponse(false, null, '', 'Đơn hàng phải có ít nhất 1 sản phẩm'), 400)
-    }
-    
-    // Validate and calculate totals
-    let subtotal = 0
-    const validatedItems = []
-    
-    for (const item of items) {
-      if (!item.product_id || !item.quantity || item.quantity <= 0) {
-        return c.json(createResponse(false, null, '', 'Thông tin sản phẩm không hợp lệ'), 400)
-      }
-      
-      const product = products.find(p => p.id === item.product_id)
-      if (!product) {
-        return c.json(createResponse(false, null, '', `Không tìm thấy sản phẩm ID: ${item.product_id}`), 400)
-      }
-      
-      if (product.stock < item.quantity) {
-        return c.json(createResponse(false, null, '', `Sản phẩm ${product.name} không đủ hàng (còn ${product.stock})`), 400)
-      }
-      
-      const itemTotal = product.price * item.quantity
-      subtotal += itemTotal
-      
-      validatedItems.push({
-        id: generateId(),
-        order_id: '', // Will be set after order creation
-        product_id: item.product_id,
-        product_name: product.name,
-        product_barcode: product.barcode,
-        quantity: item.quantity,
-        price: product.price,
-        total: itemTotal
-      })
-    }
-    
-    // Calculate final total
-    const finalDiscountAmount = discount_amount || (subtotal * discount) / 100
-    const total = Math.max(0, subtotal - finalDiscountAmount)
+    // Generate order number
+    const orderNumber = `ORD${Date.now()}`
     
     // Create order
-    const newOrder = {
-      id: generateId(),
-      order_number: `ORD-${Date.now()}`,
-      customer_name,
-      subtotal,
-      discount_percentage: discount,
-      discount_amount: finalDiscountAmount,
-      total,
-      payment_method,
-      status: 'completed',
-      notes,
-      cashier_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    const orderResult = await db.prepare(`
+      INSERT INTO orders (
+        order_number, customer_id, customer_name, customer_phone, 
+        customer_address, subtotal, discount, tax, total, 
+        status, payment_method, payment_status, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      orderNumber,
+      data.customer_id || null,
+      data.customer_name || null,
+      data.customer_phone || null,
+      data.customer_address || null,
+      data.subtotal || 0,
+      data.discount || 0,
+      data.tax || 0,
+      data.total || 0,
+      'pending',
+      data.payment_method || 'cash',
+      'pending',
+      data.notes || null
+    ).run()
+  
+  const orderId = orderResult.meta.last_row_id
+  
+  // Create order items and update stock
+  for (const item of data.items) {
+    // Add order item
+    await db.prepare(`
+      INSERT INTO order_items (
+        order_id, product_id, product_name, product_sku, 
+        quantity, price, discount, total
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      orderId, item.product_id, item.product_name, item.product_sku,
+      item.quantity, item.price, item.discount || 0, item.total
+    ).run()
+    
+    // Update product stock
+    await db.prepare(`
+      UPDATE products 
+      SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).bind(item.quantity, item.product_id).run()
+    
+    // Add stock movement
+    await db.prepare(`
+      INSERT INTO stock_movements (
+        product_id, type, quantity, reference_type, reference_id, notes
+      ) VALUES (?, 'out', ?, 'order', ?, ?)
+    `).bind(
+      item.product_id, item.quantity, orderId, 
+      `Order ${orderNumber}`
+    ).run()
+  }
+  
+    // Update customer total spent
+    if (data.customer_id) {
+      await db.prepare(`
+        UPDATE customers 
+        SET total_spent = total_spent + ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).bind(data.total, data.customer_id).run()
     }
     
-    orders.push(newOrder)
-    
-    // Create order items and update stock
-    for (const itemData of validatedItems) {
-      itemData.order_id = newOrder.id
-      orderItems.push(itemData)
-      
-      // Update product stock
-      const productIndex = products.findIndex(p => p.id === itemData.product_id)
-      if (productIndex !== -1) {
-        products[productIndex].stock -= itemData.quantity
-        products[productIndex].updated_at = new Date().toISOString()
-      }
-    }
-    
-    return c.json(createResponse(true, {
-      order: {
-        ...newOrder,
-        items: validatedItems
-      }
-    }, 'Tạo đơn hàng thành công'), 201)
-
+    return c.json({ id: orderId, order_number: orderNumber, ...data })
   } catch (error) {
-    console.error('Create order error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi tạo đơn hàng'), 500)
+    console.error('Order creation error:', error)
+    return c.json({ error: 'Failed to create order: ' + error.message }, 500)
   }
 })
 
-// ===== DASHBOARD ENDPOINTS =====
+app.put('/api/orders/:id/status', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  const { status } = await c.req.json()
+  
+  await db.prepare(`
+    UPDATE orders 
+    SET status = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).bind(status, id).run()
+  
+  return c.json({ id, status })
+})
 
-// Get dashboard statistics
-app.get('/api/dashboard/stats', async (c) => {
-  try {
-    const now = new Date()
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const startOfYear = new Date(now.getFullYear(), 0, 1)
-    
-    // Basic stats
-    const totalProducts = products.length
-    const totalOrders = orders.length
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
-    const lowStockProducts = products.filter(p => p.stock < 10)
-    
-    // Today stats
-    const todayOrders = orders.filter(order => 
-      new Date(order.created_at) >= startOfToday
-    )
-    const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0)
-    
-    // Month stats
-    const monthOrders = orders.filter(order => 
-      new Date(order.created_at) >= startOfMonth
-    )
-    const monthRevenue = monthOrders.reduce((sum, order) => sum + order.total, 0)
-    
-    // Year stats
-    const yearOrders = orders.filter(order => 
-      new Date(order.created_at) >= startOfYear
-    )
-    const yearRevenue = yearOrders.reduce((sum, order) => sum + order.total, 0)
-    
-    // Top selling products
-    const productSales = {}
-    orderItems.forEach(item => {
-      if (productSales[item.product_id]) {
-        productSales[item.product_id].quantity += item.quantity
-        productSales[item.product_id].revenue += item.total
-      } else {
-        productSales[item.product_id] = {
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          revenue: item.total
-        }
-      }
+// Stock movements
+app.get('/api/stock-movements', async (c) => {
+  const db = c.env.DB
+  const { product_id, type } = c.req.query()
+  
+  let query = `
+    SELECT sm.*, p.name as product_name, p.sku 
+    FROM stock_movements sm 
+    LEFT JOIN products p ON sm.product_id = p.id 
+    WHERE 1=1
+  `
+  const params = []
+  
+  if (product_id) {
+    query += ' AND sm.product_id = ?'
+    params.push(product_id)
+  }
+  
+  if (type) {
+    query += ' AND sm.type = ?'
+    params.push(type)
+  }
+  
+  query += ' ORDER BY sm.created_at DESC'
+  
+  const { results } = await db.prepare(query).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/stock-movements', async (c) => {
+  const db = c.env.DB
+  const data = await c.req.json()
+  
+  // Create stock movement
+  const result = await db.prepare(`
+    INSERT INTO stock_movements (
+      product_id, type, quantity, reference_type, reference_id, notes
+    ) VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(
+    data.product_id, data.type, data.quantity,
+    data.reference_type, data.reference_id, data.notes
+  ).run()
+  
+  // Update product stock
+  const operator = data.type === 'in' ? '+' : '-'
+  await db.prepare(`
+    UPDATE products 
+    SET stock = stock ${operator} ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).bind(Math.abs(data.quantity), data.product_id).run()
+  
+  return c.json({ id: result.meta.last_row_id, ...data })
+})
+
+// Authentication endpoint
+app.post('/api/auth/login', async (c) => {
+  const { email, password } = await c.req.json()
+  
+  // Simple demo authentication
+  if (email === 'admin@computerstore.com' && password === 'admin123') {
+    return c.json({
+      success: true,
+      user: {
+        id: 1,
+        email: 'admin@computerstore.com',
+        name: 'Admin User',
+        role: 'admin'
+      },
+      token: 'demo-jwt-token'
     })
-    
-    const topProducts = Object.values(productSales)
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5)
-    
-    // Recent orders
-    const recentOrders = orders
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .slice(0, 5)
-    
-    return c.json(createResponse(true, {
-      overview: {
-        totalProducts,
-        totalOrders,
-        totalRevenue,
-        lowStockCount: lowStockProducts.length
-      },
-      today: {
-        orders: todayOrders.length,
-        revenue: todayRevenue
-      },
-      month: {
-        orders: monthOrders.length,
-        revenue: monthRevenue
-      },
-      year: {
-        orders: yearOrders.length,
-        revenue: yearRevenue
-      },
-      topProducts,
-      lowStockProducts: lowStockProducts.slice(0, 5),
-      recentOrders
-    }))
-
-  } catch (error) {
-    console.error('Get dashboard stats error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy thống kê dashboard'), 500)
   }
+  
+  return c.json({ success: false, message: 'Invalid credentials' }, 401)
 })
 
-// Get revenue chart data
-app.get('/api/dashboard/revenue-chart', async (c) => {
+// ============= USERS ENDPOINTS =============
+app.get('/api/users', async (c) => {
+  const db = c.env.DB
+  const { search, role, status } = c.req.query()
+  
   try {
-    const { period = '7days' } = c.req.query()
+    let query = 'SELECT id, username, email, name, role, status, phone, created_at FROM users WHERE 1=1'
+    const params = []
     
-    let days = 7
-    if (period === '30days') days = 30
-    else if (period === '90days') days = 90
-    
-    const now = new Date()
-    const chartData = []
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now)
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
-      
-      const dayOrders = orders.filter(order => 
-        order.created_at.split('T')[0] === dateStr
-      )
-      
-      const revenue = dayOrders.reduce((sum, order) => sum + order.total, 0)
-      
-      chartData.push({
-        date: dateStr,
-        day: date.toLocaleDateString('vi-VN', { weekday: 'short' }),
-        revenue,
-        orders: dayOrders.length
-      })
+    if (search) {
+      query += ' AND (name LIKE ? OR username LIKE ? OR email LIKE ?)'
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`)
     }
     
-    return c.json(createResponse(true, { chartData }))
-
-  } catch (error) {
-    console.error('Get revenue chart error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy dữ liệu biểu đồ'), 500)
-  }
-})
-
-// ===== CATEGORIES ENDPOINTS =====
-
-// Get all categories
-app.get('/api/categories', async (c) => {
-  try {
-    const categoryMap = new Map()
+    if (role) {
+      query += ' AND role = ?'
+      params.push(role)
+    }
     
-    products.forEach(product => {
-      const category = product.category
-      if (categoryMap.has(category)) {
-        const data = categoryMap.get(category)
-        data.count += 1
-        data.totalStock += product.stock
-        data.totalValue += product.price * product.stock
-      } else {
-        categoryMap.set(category, {
-          id: category,
-          name: category,
-          count: 1,
-          totalStock: product.stock,
-          totalValue: product.price * product.stock
-        })
+    if (status) {
+      query += ' AND status = ?'
+      params.push(status)
+    }
+    
+    query += ' ORDER BY created_at DESC'
+    
+    const { results } = await db.prepare(query).bind(...params).all()
+    return c.json(results)
+  } catch (error) {
+    console.error('Users fetch error:', error)
+    // Return demo data if database fails
+    return c.json([
+      {
+        id: 1,
+        username: 'admin',
+        email: 'admin@computerstore.com',
+        name: 'Administrator',
+        role: 'admin',
+        status: 'active',
+        phone: '0901234567',
+        created_at: '2024-01-01'
+      },
+      {
+        id: 2,
+        username: 'manager',
+        email: 'manager@computerstore.com',
+        name: 'Store Manager',
+        role: 'manager',
+        status: 'active',
+        phone: '0902345678',
+        created_at: '2024-01-15'
+      },
+      {
+        id: 3,
+        username: 'staff',
+        email: 'staff@computerstore.com',
+        name: 'Sales Staff',
+        role: 'staff',
+        status: 'inactive',
+        phone: '0903456789',
+        created_at: '2024-02-01'
       }
-    })
-    
-    const categories = Array.from(categoryMap.values())
-      .sort((a, b) => b.count - a.count)
-    
-    return c.json(createResponse(true, { categories }))
-
-  } catch (error) {
-    console.error('Get categories error:', error)
-    return c.json(createResponse(false, null, '', 'Lỗi khi lấy danh sách danh mục'), 500)
+    ])
   }
 })
 
-// ===== ERROR HANDLING =====
-
-app.onError((err, c) => {
-  console.error('Global error:', err)
-  return c.json(createResponse(false, null, '', 'Lỗi server không xác định'), 500)
+app.post('/api/users', async (c) => {
+  const db = c.env.DB
+  const data = await c.req.json()
+  
+  try {
+    const result = await db.prepare(`
+      INSERT INTO users (username, email, name, role, status, phone, password_hash)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      data.username, data.email, data.name, data.role, 
+      data.status || 'active', data.phone, 'demo-hash'
+    ).run()
+    
+    return c.json({ id: result.meta.last_row_id, ...data })
+  } catch (error) {
+    console.error('User creation error:', error)
+    return c.json({ error: 'Failed to create user' }, 500)
+  }
 })
 
-app.notFound((c) => {
-  return c.json(createResponse(false, null, '', `Endpoint không tồn tại: ${c.req.method} ${c.req.path}`), 404)
+app.put('/api/users/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  const data = await c.req.json()
+  
+  try {
+    await db.prepare(`
+      UPDATE users SET 
+        username = ?, email = ?, name = ?, role = ?, 
+        status = ?, phone = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      data.username, data.email, data.name, data.role, 
+      data.status, data.phone, id
+    ).run()
+    
+    return c.json({ id, ...data })
+  } catch (error) {
+    console.error('User update error:', error)
+    return c.json({ error: 'Failed to update user' }, 500)
+  }
+})
+
+app.post('/api/users/:id/reset-password', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  const { password } = await c.req.json()
+  
+  try {
+    // In production, you should hash the password
+    const hashedPassword = `hashed_${password}` // Simple demo hash
+    
+    await db.prepare(`
+      UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(hashedPassword, id).run()
+    
+    return c.json({ message: 'Password reset successfully' })
+  } catch (error) {
+    console.error('Password reset error:', error)
+    return c.json({ error: 'Failed to reset password' }, 500)
+  }
+})
+
+app.delete('/api/users/:id', async (c) => {
+  const db = c.env.DB
+  const id = c.req.param('id')
+  
+  try {
+    await db.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
+    return c.json({ message: 'User deleted' })
+  } catch (error) {
+    console.error('User deletion error:', error)
+    return c.json({ error: 'Failed to delete user' }, 500)
+  }
 })
 
 export default app 

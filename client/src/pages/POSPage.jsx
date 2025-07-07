@@ -1,499 +1,455 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Search, ShoppingCart, User, Package, Scan, Receipt, 
-  Plus, Minus, Trash2, Edit, Eye, RotateCcw, Calculator,
-  CreditCard, DollarSign, Phone, Mail, MapPin,
-  AlertCircle, CheckCircle, Clock, X, Settings
-} from 'lucide-react';
-import { api } from '../services/api';
-import { 
-  CartItem, 
-  CustomerSection, 
-  PaymentSection, 
-  SerialNumberModal, 
-  CustomerModal, 
-  SerialNumberManagement 
-} from '../components/POSComponents';
+import React, { useState, useEffect, useRef } from 'react'
+import { Row, Col, Card, Input, Button, List, InputNumber, Space, Modal, Form, message, Tag, Empty, Divider } from 'antd'
+import { SearchOutlined, DeleteOutlined, ShoppingCartOutlined, PrinterOutlined, UserAddOutlined } from '@ant-design/icons'
+import api from '../services/api'
 
-// Advanced POS Interface Component
-const AdvancedPOSInterface = () => {
-  const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState('pos'); // 'pos', 'serial', 'customer'
-  
-  // Payment states
-  const [paymentData, setPaymentData] = useState({
-    method: 'cash',
-    received: '',
-    discount: 0,
-    tax: 0,
-    note: ''
-  });
+const { Search } = Input
 
-  // Serial number management
-  const [serialModal, setSerialModal] = useState({ open: false, product: null });
-  const [availableSerials, setAvailableSerials] = useState([]);
+const POSPage = () => {
+  const [products, setProducts] = useState([])
+  const [cart, setCart] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [customerModal, setCustomerModal] = useState(false)
+  const [customer, setCustomer] = useState(null)
+  const [paymentModal, setPaymentModal] = useState(false)
+  const [form] = Form.useForm()
+  const searchRef = useRef(null)
 
-  // Customer management
-  const [customerModal, setCustomerModal] = useState({ open: false, mode: 'select' });
-  const [newCustomer, setNewCustomer] = useState({
-    name: '', phone: '', email: '', address: ''
-  });
+  const searchProducts = async (value) => {
+    if (!value) {
+      setProducts([])
+      return
+    }
 
-  // Load data on mount
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  const loadInitialData = async () => {
-    setLoading(true);
+    setSearchLoading(true)
     try {
-      await Promise.all([
-        loadProducts(),
-        loadCustomers()
-      ]);
+      const data = await api.getProducts({ search: value, status: 'active' })
+      setProducts(data.slice(0, 10))
     } catch (error) {
-      console.error('Error loading data:', error);
+      message.error('Không thể tìm kiếm sản phẩm')
     } finally {
-      setLoading(false);
+      setSearchLoading(false)
     }
-  };
+  }
 
-  const loadProducts = async () => {
-    try {
-      const response = await api.getProducts();
-      if (response.success) {
-        setProducts(response.data.products || []);
-      }
-    } catch (error) {
-      console.error('Error loading products:', error);
-    }
-  };
-
-  const loadCustomers = async () => {
-    try {
-      const response = await api.getCustomers();
-      if (response.success) {
-        setCustomers(response.data.customers || []);
-      }
-    } catch (error) {
-      console.error('Error loading customers:', error);
-    }
-  };
-
-  // Filter products based on search
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.barcode.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Add product to cart
-  const addToCart = async (product) => {
-    if (product.quantity <= 0) {
-      alert('Sản phẩm đã hết hàng!');
-      return;
-    }
-
-    // If product has serial numbers, show serial selection
-    if (product.has_serial_numbers) {
-      setSerialModal({ open: true, product });
-      await loadSerialNumbers(product.id);
-      return;
-    }
-
-    // Add normal product
-    const existingItem = cart.find(item => item.product_id === product.id && !item.serial_number);
+  const addToCart = (product) => {
+    const existingItem = cart.find(item => item.id === product.id)
+    
     if (existingItem) {
-      updateCartQuantity(existingItem.cart_id, existingItem.quantity + 1);
+      if (existingItem.quantity >= product.stock) {
+        message.warning('Không đủ hàng trong kho')
+        return
+      }
+      updateQuantity(product.id, existingItem.quantity + 1)
     } else {
-      const cartId = Date.now() + Math.random(); // Unique cart ID
-      setCart(prev => [...prev, {
-        cart_id: cartId,
+      if (product.stock === 0) {
+        message.warning('Sản phẩm đã hết hàng')
+        return
+      }
+      setCart([...cart, {
+        id: product.id,
         product_id: product.id,
         product_name: product.name,
-        price: product.price,
+        product_sku: product.sku,
+        price: product.sale_price || product.price,
         quantity: 1,
-        total: product.price,
-        max_quantity: product.quantity
-      }]);
+        max_stock: product.stock,
+        discount: 0,
+        total: product.sale_price || product.price
+      }])
     }
-  };
-
-  // Load available serial numbers for a product
-  const loadSerialNumbers = async (productId) => {
-    try {
-      const response = await api.getProductSerialNumbers(productId);
-      if (response.success) {
-        setAvailableSerials(response.data.serial_numbers || []);
-      }
-    } catch (error) {
-      console.error('Error loading serial numbers:', error);
-      setAvailableSerials([]);
-    }
-  };
-
-  // Add product with serial number
-  const addProductWithSerial = (serial) => {
-    const { product } = serialModal;
-    const cartId = Date.now() + Math.random();
     
-    setCart(prev => [...prev, {
-      cart_id: cartId,
-      product_id: product.id,
-      product_name: product.name,
-      price: product.price,
-      quantity: 1,
-      total: product.price,
-      serial_number: serial.serial_number,
-      max_quantity: 1 // Serial products are unique
-    }]);
-
-    setSerialModal({ open: false, product: null });
-    setAvailableSerials([]);
-  };
-
-  // Update cart item quantity
-  const updateCartQuantity = (cartId, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeFromCart(cartId);
-      return;
+    // Clear search
+    setProducts([])
+    if (searchRef.current) {
+      searchRef.current.input.value = ''
     }
+  }
 
-    setCart(prev => prev.map(item => {
-      if (item.cart_id === cartId) {
-        const quantity = Math.min(newQuantity, item.max_quantity);
+  const updateQuantity = (id, quantity) => {
+    setCart(cart.map(item => {
+      if (item.id === id) {
+        const newQuantity = Math.max(0, Math.min(quantity, item.max_stock))
         return {
           ...item,
-          quantity,
-          total: item.price * quantity
-        };
+          quantity: newQuantity,
+          total: newQuantity * item.price - item.discount
+        }
       }
-      return item;
-    }));
-  };
+      return item
+    }))
+  }
 
-  // Remove item from cart
-  const removeFromCart = (cartId) => {
-    setCart(prev => prev.filter(item => item.cart_id !== cartId));
-  };
+  const removeFromCart = (id) => {
+    setCart(cart.filter(item => item.id !== id))
+  }
 
-  // Calculate totals
-  const calculations = {
-    subtotal: cart.reduce((sum, item) => sum + item.total, 0),
-    get discountAmount() {
-      return this.subtotal * (paymentData.discount / 100);
-    },
-    get taxAmount() {
-      return (this.subtotal - this.discountAmount) * (paymentData.tax / 100);
-    },
-    get total() {
-      return this.subtotal - this.discountAmount + this.taxAmount;
-    },
-    get received() {
-      return parseFloat(paymentData.received) || 0;
-    },
-    get change() {
-      return Math.max(0, this.received - this.total);
+  const calculateTotal = () => {
+    const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
+    const discount = 0 // Can add order-level discount
+    const tax = 0 // Can add tax calculation
+    return {
+      subtotal,
+      discount,
+      tax,
+      total: subtotal - discount + tax
     }
-  };
+  }
 
-  // Handle checkout
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (cart.length === 0) {
-      alert('Giỏ hàng trống!');
-      return;
+      message.warning('Giỏ hàng trống')
+      return
+    }
+    setPaymentModal(true)
+  }
+
+  const processPayment = async (paymentMethod) => {
+    const totals = calculateTotal()
+    const orderData = {
+      customer_id: customer?.id,
+      customer_name: customer?.name || 'Khách lẻ',
+      customer_phone: customer?.phone || '0000000000',
+      customer_address: customer?.address,
+      items: cart,
+      subtotal: totals.subtotal,
+      discount: totals.discount,
+      tax: totals.tax,
+      total: totals.total,
+      payment_method: paymentMethod
     }
 
-    if (paymentData.method === 'cash' && calculations.received < calculations.total) {
-      alert('Số tiền nhận không đủ!');
-      return;
-    }
-
-    setLoading(true);
     try {
-      const orderData = {
-        customer_id: selectedCustomer?.id || null,
-        customer_name: selectedCustomer?.name || newCustomer.name || '',
-        customer_phone: selectedCustomer?.phone || newCustomer.phone || '',
-        items: cart.map(item => ({
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          price: item.price,
-          total: item.total,
-          serial_number: item.serial_number || null
-        })),
-        subtotal: calculations.subtotal,
-        discount_percent: paymentData.discount,
-        discount_amount: calculations.discountAmount,
-        tax_amount: calculations.taxAmount,
-        total: calculations.total,
-        payment_method: paymentData.method,
-        received_amount: calculations.received,
-        change_amount: calculations.change,
-        note: paymentData.note,
-        status: 'completed'
-      };
-
-      const response = await api.createOrder(orderData);
+      const order = await api.createOrder(orderData)
+      message.success(`Đơn hàng ${order.order_number} đã được tạo`)
       
-      if (response.success) {
-        alert('Đơn hàng đã được tạo thành công!');
-        
-        // Reset form
-        setCart([]);
-        setSelectedCustomer(null);
-        setNewCustomer({ name: '', phone: '', email: '', address: '' });
-        setPaymentData({ method: 'cash', received: '', discount: 0, tax: 0, note: '' });
-        
-        // Reload products to update inventory
-        loadProducts();
-      } else {
-        alert('Lỗi tạo đơn hàng: ' + response.message);
-      }
-
+      // Clear cart and customer
+      setCart([])
+      setCustomer(null)
+      setPaymentModal(false)
+      
+      // Print receipt
+      printReceipt(order)
     } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Lỗi khi tạo đơn hàng: ' + error.message);
-    } finally {
-      setLoading(false);
+      message.error('Không thể tạo đơn hàng')
     }
-  };
+  }
 
-  // Handle barcode scan
-  const handleBarcodeScan = (barcode) => {
-    const product = products.find(p => p.barcode === barcode);
-    if (product) {
-      addToCart(product);
-    } else {
-      alert('Không tìm thấy sản phẩm với mã: ' + barcode);
-    }
-  };
+  const printReceipt = (order) => {
+    // Simple print implementation
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Hóa đơn ${order.order_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 300px; margin: 0 auto; }
+            h3 { text-align: center; }
+            .item { display: flex; justify-content: space-between; margin: 5px 0; }
+            .total { font-weight: bold; border-top: 1px solid #000; margin-top: 10px; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <h3>CỬA HÀNG MÁY TÍNH</h3>
+          <p>Số HĐ: ${order.order_number}</p>
+          <p>Ngày: ${new Date().toLocaleString('vi-VN')}</p>
+          <p>KH: ${order.customer_name}</p>
+          <p>SĐT: ${order.customer_phone}</p>
+          <hr>
+          ${cart.map(item => `
+            <div class="item">
+              <span>${item.product_name} x${item.quantity}</span>
+              <span>${formatCurrency(item.total)}</span>
+            </div>
+          `).join('')}
+          <div class="total item">
+            <span>Tổng cộng:</span>
+            <span>${formatCurrency(order.total)}</span>
+          </div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.print()
+  }
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount)
+  }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Left Panel - Products */}
-      <div className="flex-1 flex flex-col bg-white">
-        {/* Header */}
-        <div className="bg-blue-600 text-white p-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">POS System</h1>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setMode('pos')}
-                className={`px-3 py-1 rounded ${mode === 'pos' ? 'bg-blue-800' : 'bg-blue-500'}`}
-              >
-                Bán hàng
-              </button>
-              <button
-                onClick={() => setMode('serial')}
-                className={`px-3 py-1 rounded ${mode === 'serial' ? 'bg-blue-800' : 'bg-blue-500'}`}
-              >
-                Quản lý SN
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm sản phẩm hoặc quét mã vạch..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && searchTerm) {
-                  handleBarcodeScan(searchTerm);
-                }
-              }}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Products Grid */}
-        <div className="flex-1 p-4 overflow-y-auto">
-          {mode === 'pos' && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {filteredProducts.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={addToCart}
-                />
-              ))}
-            </div>
-          )}
-          
-          {mode === 'serial' && (
-            <SerialNumberManagement products={products.filter(p => p.has_serial_numbers)} />
-          )}
-        </div>
-      </div>
-
-      {/* Right Panel - Cart & Checkout */}
-      <div className="w-96 bg-white border-l flex flex-col">
-        {/* Cart Header */}
-        <div className="p-4 border-b bg-gray-50">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Giỏ hàng ({cart.length})</h2>
-            <button
-              onClick={() => setCart([])}
-              className="text-red-600 hover:text-red-800"
-              disabled={cart.length === 0}
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Customer Section */}
-        <div className="p-4 border-b">
-          <CustomerSection
-            customers={customers}
-            selectedCustomer={selectedCustomer}
-            onSelectCustomer={setSelectedCustomer}
-            newCustomer={newCustomer}
-            onNewCustomerChange={setNewCustomer}
-            onOpenModal={() => setCustomerModal({ open: true, mode: 'select' })}
+    <Row gutter={16} style={{ height: 'calc(100vh - 64px)' }}>
+      {/* Products Section */}
+      <Col span={14}>
+        <Card 
+          title="Tìm kiếm sản phẩm" 
+          style={{ height: '100%' }}
+          bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column' }}
+        >
+          <Search
+            ref={searchRef}
+            placeholder="Tìm tên sản phẩm, SKU hoặc quét barcode"
+            onSearch={searchProducts}
+            loading={searchLoading}
+            size="large"
+            prefix={<SearchOutlined />}
+            style={{ marginBottom: 16 }}
+            allowClear
           />
-        </div>
-
-        {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto">
-          {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <ShoppingCart className="w-16 h-16 mb-4" />
-              <p>Giỏ hàng trống</p>
-              <p className="text-sm">Thêm sản phẩm để bắt đầu</p>
-            </div>
-          ) : (
-            <div className="p-4 space-y-3">
-              {cart.map(item => (
-                <CartItem
-                  key={item.cart_id}
-                  item={item}
-                  onUpdateQuantity={updateCartQuantity}
-                  onRemove={removeFromCart}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Payment Section */}
-        {cart.length > 0 && (
-          <div className="border-t bg-gray-50">
-            <PaymentSection
-              calculations={calculations}
-              paymentData={paymentData}
-              onPaymentDataChange={setPaymentData}
-              loading={loading}
-              onCheckout={handleCheckout}
-            />
+          
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {products.length > 0 ? (
+              <List
+                dataSource={products}
+                renderItem={product => (
+                  <List.Item
+                    key={product.id}
+                    actions={[
+                      <Button 
+                        type="primary" 
+                        onClick={() => addToCart(product)}
+                        disabled={product.stock === 0}
+                      >
+                        Thêm
+                      </Button>
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        product.images && product.images.length > 0 ? (
+                          <img 
+                            src={product.images[0]} 
+                            alt={product.name}
+                            style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4 }}
+                          />
+                        ) : (
+                          <div style={{ width: 60, height: 60, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <SearchOutlined style={{ fontSize: 24, color: '#ccc' }} />
+                          </div>
+                        )
+                      }
+                      title={product.name}
+                      description={
+                        <Space direction="vertical" size="small">
+                          <span>SKU: {product.sku}</span>
+                          <span>{product.category_name} - {product.brand_name}</span>
+                          <Tag color={product.stock > 0 ? 'green' : 'red'}>
+                            Kho: {product.stock}
+                          </Tag>
+                        </Space>
+                      }
+                    />
+                    <div>
+                      {product.sale_price ? (
+                        <>
+                          <div style={{ textDecoration: 'line-through', color: '#999' }}>
+                            {formatCurrency(product.price)}
+                          </div>
+                          <div style={{ color: '#f5222d', fontWeight: 'bold' }}>
+                            {formatCurrency(product.sale_price)}
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ fontWeight: 'bold' }}>
+                          {formatCurrency(product.price)}
+                        </div>
+                      )}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty description="Tìm kiếm sản phẩm để thêm vào giỏ hàng" />
+            )}
           </div>
-        )}
-      </div>
+        </Card>
+      </Col>
 
-      {/* Serial Number Modal */}
-      <SerialNumberModal
-        isOpen={serialModal.open}
-        product={serialModal.product}
-        serialNumbers={availableSerials}
-        onSelect={addProductWithSerial}
-        onClose={() => {
-          setSerialModal({ open: false, product: null });
-          setAvailableSerials([]);
-        }}
-      />
+      {/* Cart Section */}
+      <Col span={10}>
+        <Card 
+          title={
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span><ShoppingCartOutlined /> Giỏ hàng ({cart.length})</span>
+              {customer && <Tag color="blue">{customer.name}</Tag>}
+            </div>
+          }
+          style={{ height: '100%' }}
+          bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column' }}
+          extra={
+            <Button icon={<UserAddOutlined />} onClick={() => setCustomerModal(true)}>
+              {customer ? 'Đổi KH' : 'Thêm KH'}
+            </Button>
+          }
+        >
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {cart.length > 0 ? (
+              <List
+                dataSource={cart}
+                renderItem={item => (
+                  <List.Item
+                    actions={[
+                      <Button 
+                        danger 
+                        icon={<DeleteOutlined />} 
+                        size="small"
+                        onClick={() => removeFromCart(item.id)}
+                      />
+                    ]}
+                  >
+                    <List.Item.Meta
+                      title={item.product_name}
+                      description={
+                        <Space>
+                          <InputNumber
+                            min={1}
+                            max={item.max_stock}
+                            value={item.quantity}
+                            onChange={(value) => updateQuantity(item.id, value)}
+                            size="small"
+                            style={{ width: 60 }}
+                          />
+                          <span>x {formatCurrency(item.price)}</span>
+                        </Space>
+                      }
+                    />
+                    <div style={{ fontWeight: 'bold' }}>
+                      {formatCurrency(item.total)}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty description="Giỏ hàng trống" />
+            )}
+          </div>
+
+          <Divider />
+
+          {/* Total Section */}
+          <div style={{ padding: '16px 0' }}>
+            {(() => {
+              const totals = calculateTotal()
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span>Tạm tính:</span>
+                    <span>{formatCurrency(totals.subtotal)}</span>
+                  </div>
+                  {totals.discount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span>Giảm giá:</span>
+                      <span>-{formatCurrency(totals.discount)}</span>
+                    </div>
+                  )}
+                  {totals.tax > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span>Thuế:</span>
+                      <span>{formatCurrency(totals.tax)}</span>
+                    </div>
+                  )}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    fontSize: 20, 
+                    fontWeight: 'bold',
+                    borderTop: '1px solid #f0f0f0',
+                    paddingTop: 8
+                  }}>
+                    <span>Tổng cộng:</span>
+                    <span style={{ color: '#1890ff' }}>{formatCurrency(totals.total)}</span>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+
+          <Button 
+            type="primary" 
+            size="large" 
+            block 
+            onClick={handleCheckout}
+            disabled={cart.length === 0}
+          >
+            Thanh toán
+          </Button>
+        </Card>
+      </Col>
 
       {/* Customer Modal */}
-      <CustomerModal
-        isOpen={customerModal.open}
-        mode={customerModal.mode}
-        customers={customers}
-        onSelect={setSelectedCustomer}
-        onClose={() => setCustomerModal({ open: false, mode: 'select' })}
-      />
-    </div>
-  );
-};
+      <Modal
+        title="Thông tin khách hàng"
+        open={customerModal}
+        onOk={() => {
+          form.validateFields().then(values => {
+            setCustomer(values)
+            setCustomerModal(false)
+            form.resetFields()
+          })
+        }}
+        onCancel={() => {
+          setCustomerModal(false)
+          form.resetFields()
+        }}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Tên khách hàng"
+            rules={[{ required: true, message: 'Vui lòng nhập tên khách hàng' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label="Số điện thoại"
+            rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item name="address" label="Địa chỉ">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
+      </Modal>
 
-// Product Card Component
-const ProductCard = ({ product, onAddToCart }) => {
-  const isOutOfStock = product.quantity <= 0;
-  const isLowStock = product.quantity <= product.alert_quantity;
+      {/* Payment Modal */}
+      <Modal
+        title="Chọn phương thức thanh toán"
+        open={paymentModal}
+        footer={null}
+        onCancel={() => setPaymentModal(false)}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
+          <Button 
+            type="primary" 
+            block 
+            size="large"
+            onClick={() => processPayment('cash')}
+          >
+            Tiền mặt
+          </Button>
+          <Button 
+            block 
+            size="large"
+            onClick={() => processPayment('transfer')}
+          >
+            Chuyển khoản
+          </Button>
+          <Button 
+            block 
+            size="large"
+            onClick={() => processPayment('card')}
+          >
+            Thẻ
+          </Button>
+        </Space>
+      </Modal>
+    </Row>
+  )
+}
 
-  return (
-    <div
-      className={`bg-white rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-lg ${
-        isOutOfStock 
-          ? 'border-red-200 opacity-50 cursor-not-allowed' 
-          : isLowStock 
-          ? 'border-yellow-200 hover:border-yellow-400'
-          : 'border-gray-200 hover:border-blue-400'
-      }`}
-      onClick={() => !isOutOfStock && onAddToCart(product)}
-    >
-      {/* Stock Status Badge */}
-      <div className="flex items-center justify-between mb-3">
-        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-          isOutOfStock 
-            ? 'bg-red-100 text-red-800' 
-            : isLowStock 
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-green-100 text-green-800'
-        }`}>
-          {isOutOfStock ? 'Hết hàng' : `Còn ${product.quantity}`}
-        </span>
-        
-        {product.has_serial_numbers && (
-          <Package className="w-4 h-4 text-blue-500" title="Có Serial Number" />
-        )}
-      </div>
-
-      {/* Product Image Placeholder */}
-      <div className="w-full h-24 bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
-        <Package className="w-8 h-8 text-gray-400" />
-      </div>
-
-      {/* Product Info */}
-      <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 min-h-10">
-        {product.name}
-      </h3>
-
-      {/* Price */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-lg font-bold text-blue-600">
-            {product.price.toLocaleString()}₫
-          </span>
-          {product.barcode && (
-            <p className="text-xs text-gray-500 mt-1">#{product.barcode}</p>
-          )}
-        </div>
-        
-        {!isOutOfStock && (
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-            <Plus className="w-4 h-4 text-blue-600" />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ... (continued in next part due to length limit) 
+export default POSPage 

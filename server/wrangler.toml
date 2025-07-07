@@ -1,23 +1,11 @@
-name = "pos-backend"
+name = "pos-computer-store-backend"
 main = "src/index.js"
-compatibility_date = "2023-12-01"
-compatibility_flags = ["nodejs_compat"]
-
-[env.production]
-name = "pos-backend"
-routes = [
-  { pattern = "pos-backend.bangachieu2.workers.dev/*", zone_name = "bangachieu2.workers.dev" }
-]
-
-[[d1_databases]]
-binding = "DB"
-database_name = "pos-db"
-database_id = "5299f7e8-c458-4db4-9866-124c392a6dd8"
+compatibility_date = "2024-01-01"
 
 [vars]
 ENVIRONMENT = "production"
-VERSION = "2.0.0"
-API_VERSION = "v1"
 
-# To set secrets, use: wrangler secret put SECRET_NAME
-# Example: wrangler secret put JWT_SECRET
+[[d1_databases]]
+binding = "DB"
+database_name = "pos-computer-store"
+database_id = "17e414f8-049b-40cf-94d5-3ed3de876ca8"

@@ -1,466 +1,263 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Button,
-  Input,
-  Table, 
-  Space,
-  Typography, 
-  Spin, 
-  Form,
-  message,
-  Popconfirm,
-  Tag,
-  Statistic,
-  Row,
-  Col,
-  Badge,
-  Tooltip,
-  Empty
-} from 'antd';
-import {
-  UserAddOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  SearchOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  UserOutlined,
-  TeamOutlined,
-  ShoppingCartOutlined,
-  DollarOutlined,
-  PlusOutlined
-} from '@ant-design/icons';
+import React, { useState, useEffect } from 'react'
+import { Table, Card, Button, Space, Modal, Form, Input, message, Popconfirm, Tag } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
+import api from '../services/api'
 
-// Import API functions
-import { customersAPI, ordersAPI } from '../services/api';
-
-// Import components
-import CustomerFormModal from '../components/CustomerFormModal';
-import CustomerDetailDrawer from '../components/CustomerDetailDrawer';
-
-const { Title, Text } = Typography;
-const { Search } = Input;
+const { Search } = Input
+const { TextArea } = Input
 
 const CustomersPage = () => {
-  // State management
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState(null);
-  const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [searchText, setSearchText] = useState('');
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
-  
-  // Statistics
-  const [stats, setStats] = useState({
-    totalCustomers: 0,
-    activeCustomers: 0,
-    totalOrders: 0,
-    totalRevenue: 0
-  });
+  const [customers, setCustomers] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState(null)
+  const [form] = Form.useForm()
+  const [searchText, setSearchText] = useState('')
 
-  // Form instance
-  const [form] = Form.useForm();
-
-  // Load customers on component mount
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    fetchCustomers()
+  }, [])
 
-  // Filter customers when search text changes
-  useEffect(() => {
-    if (searchText) {
-      const filtered = customers.filter(customer =>
-        customer.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        customer.phone?.includes(searchText) ||
-        customer.email?.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setFilteredCustomers(filtered);
-          } else {
-      setFilteredCustomers(customers);
-          }
-  }, [customers, searchText]);
-
-  // Load customers from API
-  const loadCustomers = async () => {
+  const fetchCustomers = async () => {
+    setLoading(true)
     try {
-      setLoading(true);
-      const response = await customersAPI.getAll({
-        limit: 100,
-        include_stats: true
-      });
-      
-      if (response.data && response.data.success) {
-        const customersData = response.data.data || [];
-        setCustomers(customersData);
-        setFilteredCustomers(customersData);
-        calculateStats(customersData);
-        message.success(`Đã tải ${customersData.length} khách hàng`);
-      } else {
-        throw new Error('Invalid API response');
-      }
+      const data = await api.getCustomers({ search: searchText })
+      setCustomers(data)
     } catch (error) {
-      console.error('Error loading customers:', error);
-      message.error('Không thể tải danh sách khách hàng');
-      setCustomers([]);
-      setFilteredCustomers([]);
+      message.error('Không thể tải danh sách khách hàng')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  // Calculate statistics
-  const calculateStats = (customerData) => {
-    const totalCustomers = customerData.length;
-    const activeCustomers = customerData.filter(c => c.status === 'active').length;
-    const totalOrders = customerData.reduce((sum, c) => sum + (c.total_orders || 0), 0);
-    const totalRevenue = customerData.reduce((sum, c) => sum + (c.total_spent || 0), 0);
-    
-    setStats({
-      totalCustomers,
-      activeCustomers,
-      totalOrders,
-      totalRevenue
-      });
-  };
-
-  // Handle search
   const handleSearch = (value) => {
-    setSearchText(value);
-  };
+    setSearchText(value)
+    fetchCustomers()
+  }
 
-  // Handle create customer
-  const handleCreate = () => {
-    setEditingCustomer(null);
-    form.resetFields();
-    setModalVisible(true);
-  };
+  const handleAdd = () => {
+    setEditingCustomer(null)
+    form.resetFields()
+    setModalVisible(true)
+  }
 
-  // Handle edit customer
   const handleEdit = (customer) => {
-    setEditingCustomer(customer);
-    form.setFieldsValue({
-      name: customer.name,
-      phone: customer.phone,
-      email: customer.email,
-      address: customer.address,
-      notes: customer.notes
-    });
-    setModalVisible(true);
-  };
+    setEditingCustomer(customer)
+    form.setFieldsValue(customer)
+    setModalVisible(true)
+  }
 
-  // Handle delete customer
-  const handleDelete = async (customerId) => {
+  const handleSave = async (values) => {
     try {
-      setLoading(true);
-      const response = await customersAPI.delete(customerId);
-      
-      if (response.data && response.data.success) {
-        message.success('Đã xóa khách hàng thành công');
-        loadCustomers(); // Reload list
-      } else {
-        throw new Error('Failed to delete customer');
-      }
-    } catch (error) {
-      console.error('Error deleting customer:', error);
-      message.error('Không thể xóa khách hàng');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle view customer details
-  const handleViewDetails = async (customer) => {
-    try {
-      setSelectedCustomer(customer);
-      setDetailDrawerVisible(true);
-      
-      // Load customer purchase history
-      const ordersResponse = await ordersAPI.getAll({
-        customer_id: customer.id,
-        limit: 50
-      });
-      
-      if (ordersResponse.data && ordersResponse.data.success) {
-        const customerWithHistory = {
-          ...customer,
-          purchaseHistory: ordersResponse.data.data || []
-        };
-        setSelectedCustomer(customerWithHistory);
-      }
-    } catch (error) {
-      console.error('Error loading customer details:', error);
-      message.error('Không thể tải thông tin chi tiết khách hàng');
-    }
-  };
-
-  // Handle form submission
-  const handleSubmit = async (values) => {
-    try {
-      setLoading(true);
-      let response;
-      
       if (editingCustomer) {
-        // Update existing customer
-        response = await customersAPI.update(editingCustomer.id, values);
+        await api.updateCustomer(editingCustomer.id, values)
+        message.success('Đã cập nhật khách hàng')
       } else {
-        // Create new customer
-        response = await customersAPI.create(values);
+        await api.createCustomer(values)
+        message.success('Đã thêm khách hàng mới')
       }
       
-      if (response.data && response.data.success) {
-        message.success(editingCustomer ? 'Đã cập nhật khách hàng' : 'Đã tạo khách hàng mới');
-        setModalVisible(false);
-        form.resetFields();
-        loadCustomers(); // Reload list
-        } else {
-        throw new Error('Failed to save customer');
-      }
+      setModalVisible(false)
+      fetchCustomers()
     } catch (error) {
-      console.error('Error saving customer:', error);
-      message.error('Không thể lưu thông tin khách hàng');
-    } finally {
-      setLoading(false);
+      message.error('Có lỗi xảy ra')
     }
-  };
+  }
 
-  // Format currency
+  const handleDelete = async (id) => {
+    try {
+      await api.deleteCustomer(id)
+      message.success('Đã xóa khách hàng')
+      fetchCustomers()
+    } catch (error) {
+      message.error('Không thể xóa khách hàng')
+    }
+  }
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
-    }).format(amount);
-  };
+    }).format(amount)
+  }
 
-  // Table columns
   const columns = [
     {
       title: 'Tên khách hàng',
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
-        <Space>
-          <UserOutlined style={{ color: '#1890ff' }} />
-          <span style={{ fontWeight: 'bold' }}>{text}</span>
-          {record.is_vip && <Tag color="gold">VIP</Tag>}
-        </Space>
-      ),
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: 'Số điện thoại',
-      dataIndex: 'phone',
-      key: 'phone',
-      render: (text) => (
-        <Space>
-          <PhoneOutlined style={{ color: '#52c41a' }} />
-          <span>{text}</span>
-        </Space>
-      ),
+        <div>
+          <div style={{ fontWeight: 'bold' }}>{text}</div>
+          <div style={{ fontSize: 12, color: '#666' }}>{record.phone}</div>
+        </div>
+      )
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      render: (text) => text ? (
-        <Space>
-          <MailOutlined style={{ color: '#722ed1' }} />
-          <span>{text}</span>
-        </Space>
-      ) : <Text type="secondary">Chưa có</Text>,
+      render: (email) => email || '-'
+    },
+    {
+      title: 'Địa chỉ',
+      dataIndex: 'address',
+      key: 'address',
+      ellipsis: true,
+      render: (address) => address || '-'
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => new Date(date).toLocaleDateString('vi-VN')
     },
     {
       title: 'Tổng đơn hàng',
       dataIndex: 'total_orders',
       key: 'total_orders',
-      render: (value) => (
-        <Badge count={value || 0} style={{ backgroundColor: '#1890ff' }} />
-      ),
-      sorter: (a, b) => (a.total_orders || 0) - (b.total_orders || 0),
+      render: (count) => (
+        <Tag color="blue">{count || 0} đơn</Tag>
+      )
     },
     {
       title: 'Tổng chi tiêu',
       dataIndex: 'total_spent',
       key: 'total_spent',
-      render: (value) => (
-        <Text strong style={{ color: '#f5222d' }}>
-          {formatCurrency(value || 0)}
-        </Text>
-      ),
-      sorter: (a, b) => (a.total_spent || 0) - (b.total_spent || 0),
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>
-          {status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-        </Tag>
-      ),
+      render: (amount) => (
+        <span style={{ fontWeight: 'bold', color: '#52c41a' }}>
+          {formatCurrency(amount || 0)}
+        </span>
+      )
     },
     {
       title: 'Hành động',
-      key: 'actions',
+      key: 'action',
       render: (_, record) => (
-        <Space>
-          <Tooltip title="Xem chi tiết">
-            <Button
-              type="text"
-              icon={<SearchOutlined />}
-              onClick={() => handleViewDetails(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Chỉnh sửa">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
+        <Space size="middle">
+          <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa khách hàng này?"
             onConfirm={() => handleDelete(record.id)}
-              okText="Xóa"
-              cancelText="Hủy"
+            okText="Xóa"
+            cancelText="Hủy"
           >
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
-            </Tooltip>
+            <Button danger icon={<DeleteOutlined />} size="small" />
+          </Popconfirm>
         </Space>
-      ),
-    },
-  ];
+      )
+    }
+  ]
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Title level={2} style={{ marginBottom: '24px' }}>
-        <TeamOutlined /> Quản lý khách hàng
-      </Title>
-
-      {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="Tổng khách hàng"
-              value={stats.totalCustomers}
-              prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="Khách hàng hoạt động"
-              value={stats.activeCustomers}
-              prefix={<UserOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="Tổng đơn hàng"
-              value={stats.totalOrders}
-              prefix={<ShoppingCartOutlined style={{ color: '#722ed1' }} />}
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="Tổng doanh thu"
-              value={stats.totalRevenue}
-              formatter={(value) => formatCurrency(value)}
-              prefix={<DollarOutlined style={{ color: '#f5222d' }} />}
-              valueStyle={{ color: '#f5222d' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Main Content */}
+    <div>
       <Card>
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={16} md={18}>
-            <Search
-              placeholder="Tìm kiếm khách hàng..."
-              allowClear
-              onSearch={handleSearch}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ width: '100%' }}
-              data-testid="search-customers"
-            />
-          </Col>
-          <Col xs={24} sm={8} md={6}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setModalVisible(true)}
-              block
-              data-testid="add-customer-btn"
-            >
-              Thêm khách hàng
-            </Button>
-          </Col>
-        </Row>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>Quản lý khách hàng</h2>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            Thêm khách hàng
+          </Button>
+        </div>
 
-        <Spin spinning={loading}>
-          {filteredCustomers.length > 0 ? (
+        <div style={{ marginBottom: 16 }}>
+          <Search
+            placeholder="Tìm kiếm tên, số điện thoại, email..."
+            onSearch={handleSearch}
+            style={{ width: 400 }}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </div>
+
         <Table
           columns={columns}
-              dataSource={filteredCustomers}
+          dataSource={customers}
           rowKey="id"
+          loading={loading}
           pagination={{
-                total: filteredCustomers.length,
-            pageSize: 10,
+            pageSize: 20,
             showSizeChanger: true,
-            showQuickJumper: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} khách hàng`,
+            showTotal: (total) => `Tổng ${total} khách hàng`
           }}
-              scroll={{ x: 800 }}
         />
-          ) : (
-            <Empty
-              description="Không có khách hàng nào"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
-        </Spin>
       </Card>
 
       {/* Customer Form Modal */}
-      <CustomerFormModal
-        visible={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
-        onSubmit={handleSubmit}
-        form={form}
-        editingCustomer={editingCustomer}
-        loading={loading}
-      />
+      <Modal
+        title={editingCustomer ? 'Sửa thông tin khách hàng' : 'Thêm khách hàng mới'}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSave}
+        >
+          <Form.Item
+            name="name"
+            label="Tên khách hàng"
+            rules={[{ required: true, message: 'Vui lòng nhập tên khách hàng' }]}
+          >
+            <Input placeholder="Nhập tên khách hàng" />
+          </Form.Item>
 
-      {/* Customer Detail Drawer */}
-      <CustomerDetailDrawer
-        visible={detailDrawerVisible}
-        onClose={() => setDetailDrawerVisible(false)}
-        customer={selectedCustomer}
-      />
+          <Form.Item
+            name="phone"
+            label="Số điện thoại"
+            rules={[
+              { required: true, message: 'Vui lòng nhập số điện thoại' },
+              { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ' }
+            ]}
+          >
+            <Input placeholder="Nhập số điện thoại" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { type: 'email', message: 'Email không hợp lệ' }
+            ]}
+          >
+            <Input placeholder="Nhập email (tùy chọn)" />
+          </Form.Item>
+
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+          >
+            <TextArea 
+              rows={3} 
+              placeholder="Nhập địa chỉ (tùy chọn)" 
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="notes"
+            label="Ghi chú"
+          >
+            <TextArea 
+              rows={2} 
+              placeholder="Ghi chú về khách hàng (tùy chọn)" 
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginTop: 24 }}>
+            <Space>
+              <Button type="primary" htmlType="submit">
+                {editingCustomer ? 'Cập nhật' : 'Thêm mới'}
+              </Button>
+              <Button onClick={() => setModalVisible(false)}>
+                Hủy
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
-  );
-};
+  )
+}
 
-export default CustomersPage; 
+export default CustomersPage 

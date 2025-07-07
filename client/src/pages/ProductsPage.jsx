@@ -1,494 +1,557 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Space,
-  message,
-  Popconfirm,
-  Tag,
-  Card,
-  Row,
-  Col,
-  Statistic,
-  Divider
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SearchOutlined
-} from '@ant-design/icons';
+import React, { useState, useEffect } from 'react'
+import { Table, Button, Space, Tag, Input, Select, message, Popconfirm, Card, Row, Col, Statistic, Modal, Form, InputNumber, Upload, Tabs } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BarcodeOutlined, UploadOutlined } from '@ant-design/icons'
+import api from '../services/api'
 
-import { productsAPI, suppliersAPI, categoriesAPI } from '../services/api';
-import { formatCurrency, formatDate } from '../utils/format';
+const { Search } = Input
+const { Option } = Select
+const { TextArea } = Input
+const { TabPane } = Tabs
 
-const { Search } = Input;
-const { Option } = Select;
-
-function ProductsPage() {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [form] = Form.useForm();
-  const [suppliers, setSuppliers] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [searchText, setSearchText] = useState('');
+const ProductsPage = () => {
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [brands, setBrands] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [editingProduct, setEditingProduct] = useState(null)
+  const [form] = Form.useForm()
+  const [imageList, setImageList] = useState([])
+  const [filters, setFilters] = useState({
+    search: '',
+    category: null,
+    brand: null,
+    status: null
+  })
 
   useEffect(() => {
-    loadProducts();
-    loadSuppliers();
-    loadCategories();
-  }, []);
+    fetchProducts()
+    fetchCategories()
+    fetchBrands()
+  }, [filters])
 
-  const loadProducts = async () => {
+  const fetchProducts = async () => {
+    setLoading(true)
     try {
-      setLoading(true);
-      const response = await productsAPI.getAll();
-      if (response.data.success) {
-        setProducts(response.data.data);
-        setFilteredProducts(response.data.data);
-      }
+      const data = await api.getProducts(filters)
+      setProducts(data)
     } catch (error) {
-      message.error('Lỗi khi tải danh sách sản phẩm');
+      message.error('Không thể tải danh sách sản phẩm')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const loadSuppliers = async () => {
+  const fetchCategories = async () => {
     try {
-      const response = await suppliersAPI.getAll();
-      if (response.data.success) {
-        setSuppliers(Array.isArray(response.data.data) ? response.data.data : []);
-      } else {
-        setSuppliers([]);
-      }
+      const data = await api.getCategories()
+      setCategories(data)
     } catch (error) {
-      setSuppliers([]);
+      console.error('Error fetching categories:', error)
     }
-  };
-  const loadCategories = async () => {
+  }
+
+  const fetchBrands = async () => {
     try {
-      const response = await categoriesAPI.getAll();
-      if (response.data.success) {
-        setCategories(Array.isArray(response.data.data) ? response.data.data : []);
-      } else {
-        setCategories([]);
-      }
+      const data = await api.getBrands()
+      setBrands(data)
     } catch (error) {
-      setCategories([]);
+      console.error('Error fetching brands:', error)
     }
-  };
-
-  // Handle search
-  const handleSearch = (value) => {
-    setSearchText(value);
-  };
-
-  // Show modal
-  const showModal = () => {
-    setModalVisible(true);
-  };
-
-  const handleCancel = () => {
-    setModalVisible(false);
-    setEditingProduct(null);
-    form.resetFields();
-  };
-
-  const handleSubmit = async (values) => {
-    try {
-      setLoading(true);
-      
-      if (editingProduct) {
-        // Cập nhật sản phẩm
-        const response = await productsAPI.update(editingProduct.id, values);
-        if (response.data.success) {
-          message.success('Cập nhật sản phẩm thành công');
-        }
-      } else {
-        // Tạo sản phẩm mới
-        const response = await productsAPI.create(values);
-        if (response.data.success) {
-          message.success('Tạo sản phẩm thành công');
-        }
-      }
-      
-      handleCancel();
-      loadProducts();
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
 
   const handleDelete = async (id) => {
     try {
-      setLoading(true);
-      const response = await productsAPI.delete(id);
-      if (response.data.success) {
-        message.success('Xóa sản phẩm thành công');
-        loadProducts();
-      }
+      await api.deleteProduct(id)
+      message.success('Đã xóa sản phẩm')
+      fetchProducts()
     } catch (error) {
-      message.error(error.response?.data?.message || 'Lỗi khi xóa sản phẩm');
-    } finally {
-      setLoading(false);
+      message.error('Không thể xóa sản phẩm')
     }
-  };
+  }
 
-  const getCategories = () => {
-    const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
-    return categories;
-  };
+  const handleEdit = (product) => {
+    setEditingProduct(product)
+    form.setFieldsValue({
+      ...product,
+      specifications: product.specifications || {}
+    })
+    if (product.images) {
+      setImageList(product.images.map((url, index) => ({
+        uid: `-${index}`,
+        name: `image${index}.png`,
+        status: 'done',
+        url
+      })))
+    }
+    setModalVisible(true)
+  }
 
-  const getStats = () => {
-    const totalProducts = products.length;
-    const inStock = products.filter(p => p.quantity > 0).length;
-    const outOfStock = products.filter(p => p.quantity === 0).length;
-    const totalValue = products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
-    
-    return { totalProducts, inStock, outOfStock, totalValue };
-  };
+  const handleAdd = () => {
+    setEditingProduct(null)
+    form.resetFields()
+    setImageList([])
+    setModalVisible(true)
+  }
 
-  const stats = getStats();
+  const handleSave = async (values) => {
+    try {
+      const images = imageList.map(img => img.url || img.response?.url).filter(Boolean)
+      const data = {
+        ...values,
+        images,
+        specifications: values.specifications || {}
+      }
+
+      if (editingProduct) {
+        await api.updateProduct(editingProduct.id, data)
+        message.success('Đã cập nhật sản phẩm')
+      } else {
+        await api.createProduct(data)
+        message.success('Đã thêm sản phẩm mới')
+      }
+      
+      setModalVisible(false)
+      fetchProducts()
+    } catch (error) {
+      message.error('Có lỗi xảy ra')
+    }
+  }
+
+  const uploadProps = {
+    listType: 'picture-card',
+    fileList: imageList,
+    onChange: ({ fileList }) => setImageList(fileList),
+    customRequest: ({ file, onSuccess }) => {
+      // In real implementation, upload to cloud storage
+      setTimeout(() => {
+        onSuccess({ url: URL.createObjectURL(file) })
+      }, 0)
+    }
+  }
 
   const columns = [
     {
-      title: 'Mã sản phẩm',
+      title: 'Hình ảnh',
+      dataIndex: 'images',
+      key: 'images',
+      width: 80,
+      render: (images) => (
+        <div style={{ width: 60, height: 60, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {images && images.length > 0 ? (
+            <img src={images[0]} alt="Product" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
+          ) : (
+            <BarcodeOutlined style={{ fontSize: 24, color: '#ccc' }} />
+          )}
+        </div>
+      )
+    },
+    {
+      title: 'SKU',
       dataIndex: 'sku',
       key: 'sku',
       width: 120,
-      render: (sku) => sku || '-'
     },
     {
       title: 'Tên sản phẩm',
       dataIndex: 'name',
       key: 'name',
-      ellipsis: true,
-      sorter: (a, b) => a.name.localeCompare(b.name)
-    },
-    {
-      title: 'Danh mục',
-      dataIndex: 'category_id',
-      key: 'category',
-      width: 120,
-      render: (categoryId) => {
-        const category = categories.find(c => c.id === categoryId);
-        return category ? category.name : 'Chưa phân loại';
-      }
+      render: (text, record) => (
+        <div>
+          <div style={{ fontWeight: 'bold' }}>{text}</div>
+          <div style={{ fontSize: 12, color: '#666' }}>{record.category_name} - {record.brand_name}</div>
+        </div>
+      )
     },
     {
       title: 'Giá bán',
       dataIndex: 'price',
       key: 'price',
       width: 120,
-      render: (price) => formatCurrency(price),
-      sorter: (a, b) => a.price - b.price
+      render: (price, record) => (
+        <div>
+          {record.sale_price ? (
+            <>
+              <div style={{ textDecoration: 'line-through', color: '#999', fontSize: 12 }}>
+                {formatCurrency(price)}
+              </div>
+              <div style={{ color: '#f5222d', fontWeight: 'bold' }}>
+                {formatCurrency(record.sale_price)}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontWeight: 'bold' }}>
+              {formatCurrency(price)}
+            </div>
+          )}
+        </div>
+      )
     },
     {
       title: 'Tồn kho',
-      dataIndex: 'quantity',
-      key: 'quantity',
+      dataIndex: 'stock',
+      key: 'stock',
       width: 100,
-      render: (quantity) => (
-        <Tag color={quantity > 0 ? 'green' : 'red'}>
-          {quantity}
+      render: (stock) => (
+        <Tag color={stock > 10 ? 'green' : stock > 0 ? 'orange' : 'red'}>
+          {stock}
         </Tag>
-      ),
-      sorter: (a, b) => a.quantity - b.quantity
+      )
     },
     {
-      title: 'Barcode',
-      dataIndex: 'barcode',
-      key: 'barcode',
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
       width: 120,
-      render: (barcode) => barcode || '-'
+      render: (status) => (
+        <Tag color={status === 'active' ? 'green' : 'default'}>
+          {status === 'active' ? 'Đang bán' : 'Ngừng bán'}
+        </Tag>
+      )
     },
     {
-      title: 'Ngày tạo',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 150,
-      render: (date) => formatDate(date),
-      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    },
-    {
-      title: 'Thao tác',
-      key: 'actions',
+      title: 'Hành động',
+      key: 'action',
       width: 120,
       render: (_, record) => (
-        <Space>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingProduct(record);
-              setModalVisible(true);
-              form.setFieldsValue(record);
-            }}
-          />
+        <Space size="middle">
+          <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
           <Popconfirm
-            title="Bạn có chắc muốn xóa sản phẩm này?"
+            title="Bạn có chắc chắn muốn xóa sản phẩm này?"
             onConfirm={() => handleDelete(record.id)}
             okText="Xóa"
             cancelText="Hủy"
           >
-            <Button
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-            />
+            <Button danger icon={<DeleteOutlined />} size="small" />
           </Popconfirm>
         </Space>
-      )
-    }
-  ];
+      ),
+    },
+  ]
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount)
+  }
+
+  // Calculate statistics
+  const totalProducts = products.length
+  const totalStock = products.reduce((sum, p) => sum + p.stock, 0)
+  const lowStockCount = products.filter(p => p.stock <= 5 && p.stock > 0).length
+  const outOfStockCount = products.filter(p => p.stock === 0).length
 
   return (
     <div>
-      {/* Thống kê */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Tổng sản phẩm"
-              value={stats.totalProducts}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Còn hàng"
-              value={stats.inStock}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Hết hàng"
-              value={stats.outOfStock}
-              valueStyle={{ color: '#f5222d' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Giá trị tồn kho"
-              value={stats.totalValue}
-              formatter={(value) => formatCurrency(value)}
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Bảng sản phẩm */}
       <Card>
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={16} md={18}>
-            <Search
-              placeholder="Tìm kiếm sản phẩm..."
-              allowClear
-              onSearch={handleSearch}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ width: '100%' }}
-              data-testid="search-products"
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={6}>
+            <Statistic title="Tổng sản phẩm" value={totalProducts} />
+          </Col>
+          <Col span={6}>
+            <Statistic title="Tổng tồn kho" value={totalStock} />
+          </Col>
+          <Col span={6}>
+            <Statistic 
+              title="Sắp hết hàng" 
+              value={lowStockCount} 
+              valueStyle={{ color: '#faad14' }}
             />
           </Col>
-          <Col xs={24} sm={8} md={6}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={showModal}
-              block
-              data-testid="add-product-btn"
-            >
-              Thêm sản phẩm
-            </Button>
+          <Col span={6}>
+            <Statistic 
+              title="Hết hàng" 
+              value={outOfStockCount} 
+              valueStyle={{ color: '#cf1322' }}
+            />
           </Col>
         </Row>
 
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+          <Space>
+            <Search
+              placeholder="Tìm kiếm sản phẩm, SKU, barcode..."
+              onSearch={(value) => setFilters({ ...filters, search: value })}
+              style={{ width: 300 }}
+              prefix={<SearchOutlined />}
+            />
+            <Select
+              placeholder="Danh mục"
+              style={{ width: 200 }}
+              allowClear
+              onChange={(value) => setFilters({ ...filters, category: value })}
+            >
+              {categories.map(cat => (
+                <Option key={cat.id} value={cat.id}>{cat.name}</Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="Thương hiệu"
+              style={{ width: 200 }}
+              allowClear
+              onChange={(value) => setFilters({ ...filters, brand: value })}
+            >
+              {brands.map(brand => (
+                <Option key={brand.id} value={brand.id}>{brand.name}</Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="Trạng thái"
+              style={{ width: 150 }}
+              allowClear
+              onChange={(value) => setFilters({ ...filters, status: value })}
+            >
+              <Option value="active">Đang bán</Option>
+              <Option value="inactive">Ngừng bán</Option>
+            </Select>
+          </Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+            Thêm sản phẩm
+          </Button>
+        </div>
+
         <Table
-          dataSource={filteredProducts}
           columns={columns}
+          dataSource={products}
           rowKey="id"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            pageSize: 20,
             showSizeChanger: true,
-            showQuickJumper: true,
             showTotal: (total) => `Tổng ${total} sản phẩm`
           }}
-          scroll={{ x: 1000 }}
         />
       </Card>
 
-      {/* Modal thêm/sửa sản phẩm */}
+      {/* Product Form Modal */}
       <Modal
         title={editingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}
         open={modalVisible}
-        onCancel={handleCancel}
+        onCancel={() => setModalVisible(false)}
         footer={null}
-        width={700}
+        width={800}
       >
         <Form
           form={form}
           layout="vertical"
-          onFinish={handleSubmit}
+          onFinish={handleSave}
+          initialValues={{
+            status: 'active',
+            warranty_months: 12
+          }}
         >
-          <Row gutter={16}>
-            <Col span={12}>
+          <Tabs defaultActiveKey="1">
+            <TabPane tab="Thông tin cơ bản" key="1">
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item
+                    name="sku"
+                    label="SKU"
+                    rules={[{ required: true, message: 'Vui lòng nhập SKU' }]}
+                  >
+                    <Input placeholder="VD: LAP-DELL-001" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="barcode" label="Barcode">
+                    <Input placeholder="Mã vạch sản phẩm" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="status" label="Trạng thái">
+                    <Select>
+                      <Option value="active">Đang bán</Option>
+                      <Option value="inactive">Ngừng bán</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
               <Form.Item
-                label="Tên sản phẩm"
                 name="name"
+                label="Tên sản phẩm"
                 rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm' }]}
               >
-                <Input placeholder="VD: iPhone 15 Pro Max" />
+                <Input placeholder="VD: Laptop Dell Inspiron 15 3520" />
               </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Mã sản phẩm (SKU)"
-                name="sku"
-              >
-                <Input placeholder="VD: IP15PM-256GB" />
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="category_id"
+                    label="Danh mục"
+                    rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}
+                  >
+                    <Select placeholder="Chọn danh mục">
+                      {categories.map(cat => (
+                        <Option key={cat.id} value={cat.id}>{cat.name}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="brand_id"
+                    label="Thương hiệu"
+                    rules={[{ required: true, message: 'Vui lòng chọn thương hiệu' }]}
+                  >
+                    <Select placeholder="Chọn thương hiệu">
+                      {brands.map(brand => (
+                        <Option key={brand.id} value={brand.id}>{brand.name}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item name="description" label="Mô tả">
+                <TextArea rows={4} placeholder="Mô tả chi tiết về sản phẩm" />
               </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Giá bán"
-                name="price"
-                rules={[{ required: true, message: 'Vui lòng nhập giá bán' }]}
-              >
-                <InputNumber
-                  placeholder="Giá bán"
-                  style={{ width: '100%' }}
-                  min={0}
-                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                />
+
+              <Row gutter={16}>
+                <Col span={6}>
+                  <Form.Item
+                    name="cost"
+                    label="Giá nhập"
+                    rules={[{ required: true, message: 'Vui lòng nhập giá nhập' }]}
+                  >
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                      placeholder="0"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item
+                    name="price"
+                    label="Giá bán"
+                    rules={[{ required: true, message: 'Vui lòng nhập giá bán' }]}
+                  >
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                      placeholder="0"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="sale_price" label="Giá khuyến mãi">
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                      placeholder="0"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item
+                    name="stock"
+                    label="Số lượng"
+                    rules={[{ required: true, message: 'Vui lòng nhập số lượng' }]}
+                  >
+                    <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item name="warranty_months" label="Bảo hành (tháng)">
+                <InputNumber min={0} style={{ width: 200 }} />
               </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Số lượng"
-                name="quantity"
-                rules={[{ required: true, message: 'Vui lòng nhập số lượng' }]}
-              >
-                <InputNumber
-                  placeholder="Số lượng"
-                  style={{ width: '100%' }}
-                  min={0}
-                />
+
+              <Form.Item label="Hình ảnh">
+                <Upload {...uploadProps}>
+                  {imageList.length < 8 && (
+                    <div>
+                      <PlusOutlined />
+                      <div style={{ marginTop: 8 }}>Tải lên</div>
+                    </div>
+                  )}
+                </Upload>
               </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Danh mục"
-                name="category_id"
-                rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}
-              >
-                <Select placeholder="Chọn danh mục" allowClear>
-                  {categories.map(cat => (
-                    <Option key={cat.id} value={cat.id}>{cat.name}</Option>
-                  ))}
-                </Select>
+            </TabPane>
+
+            <TabPane tab="Thông số kỹ thuật" key="2">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'cpu']} label="CPU">
+                    <Input placeholder="VD: Intel Core i5-1235U" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'ram']} label="RAM">
+                    <Input placeholder="VD: 8GB DDR4 3200MHz" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'storage']} label="Ổ cứng">
+                    <Input placeholder="VD: 512GB SSD NVMe" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'display']} label="Màn hình">
+                    <Input placeholder="VD: 15.6 inch FHD (1920x1080)" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'graphics']} label="Card đồ họa">
+                    <Input placeholder="VD: Intel UHD Graphics" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'os']} label="Hệ điều hành">
+                    <Input placeholder="VD: Windows 11 Home" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'weight']} label="Trọng lượng">
+                    <Input placeholder="VD: 1.65 kg" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name={['specifications', 'battery']} label="Pin">
+                    <Input placeholder="VD: 3 Cell 41Whr" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item name={['specifications', 'ports']} label="Cổng kết nối">
+                <TextArea rows={3} placeholder="VD: 2x USB 3.2, 1x USB Type-C, 1x HDMI 1.4, 1x Audio jack" />
               </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Barcode"
-                name="barcode"
-              >
-                <Input placeholder="VD: 8934588123456" />
+
+              <Form.Item name={['specifications', 'other']} label="Khác">
+                <TextArea rows={3} placeholder="Các thông số khác..." />
               </Form.Item>
-            </Col>
-          </Row>
-          <Divider orientation="left">Thông tin bổ sung</Divider>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Giá vốn"
-                name="cost_price"
-                rules={[{ required: true, message: 'Vui lòng nhập giá vốn' }]}
-              >
-                <InputNumber
-                  placeholder="Giá nhập"
-                  style={{ width: '100%' }}
-                  min={0}
-                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Nhà cung cấp"
-                name="supplier_id"
-              >
-                <Select placeholder="Chọn nhà cung cấp" allowClear>
-                  {suppliers.map(sup => (
-                    <Option key={sup.id} value={sup.id}>{sup.name}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item label="Đơn vị" name="unit" initialValue="cái">
-                <Select>
-                  <Option value="cái">Cái</Option>
-                  <Option value="hộp">Hộp</Option>
-                  <Option value="bộ">Bộ</Option>
-                  <Option value="thùng">Thùng</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="Tồn kho tối thiểu" name="min_stock" initialValue={10}>
-                <InputNumber min={0} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="Tồn kho tối đa" name="max_stock" initialValue={1000}>
-                <InputNumber min={0} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item label="Mô tả sản phẩm" name="description">
-            <Input.TextArea rows={3} placeholder="Mô tả chi tiết về sản phẩm, thông số kỹ thuật..." />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            </TabPane>
+          </Tabs>
+
+          <Form.Item style={{ marginTop: 24 }}>
             <Space>
-              <Button onClick={handleCancel}>Hủy</Button>
-              <Button type="primary" htmlType="submit" loading={loading}>
+              <Button type="primary" htmlType="submit">
                 {editingProduct ? 'Cập nhật' : 'Thêm mới'}
+              </Button>
+              <Button onClick={() => setModalVisible(false)}>
+                Hủy
               </Button>
             </Space>
           </Form.Item>
         </Form>
       </Modal>
     </div>
-  );
+  )
 }
 
-export default ProductsPage; 
+export default ProductsPage 

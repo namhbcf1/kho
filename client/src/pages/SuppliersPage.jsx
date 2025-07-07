@@ -1,900 +1,304 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
-  Card,
-  Table,
-  Button,
-  Input,
-  Space,
-  Modal,
-  Form,
-  message,
-  Row,
-  Col,
-  Statistic,
-  Tag,
-  Tooltip,
-  Popconfirm,
-  Drawer,
-  Typography,
-  Avatar
-} from 'antd';
+  Card, Table, Button, Space, Input, Select, Modal, Form, Row, Col,
+  message, Tooltip, Typography, Tag, Popconfirm
+} from 'antd'
 import {
-  PlusOutlined,
-  SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ShopOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  HomeOutlined,
-  CreditCardOutlined,
-  EyeOutlined,
-  BankOutlined,
-  UserOutlined,
-  ContactsOutlined
-} from '@ant-design/icons';
-import api, { suppliersAPI, serialsAPI, formatCurrency, formatDate } from '../services/api';
-import SupplierFormModal from '../components/SupplierFormModal';
-import { toast } from 'sonner';
+  PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined,
+  BankOutlined, PhoneOutlined, MailOutlined
+} from '@ant-design/icons'
+import api from '../services/api'
 
-const { Search } = Input;
-const { Text } = Typography;
+const { Title, Text } = Typography
+const { TextArea } = Input
 
 const SuppliersPage = () => {
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isDetailDrawerVisible, setIsDetailDrawerVisible] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState(null);
-  const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [searchText, setSearchText] = useState('');
-  const [stats, setStats] = useState({
-    total: 0,
-    totalDebt: 0,
-    totalCreditLimit: 0
-  });
-  const [supplierProducts, setSupplierProducts] = useState([]);
-  const [supplierProductsLoading, setSupplierProductsLoading] = useState(false);
-  const [isProductsDrawerVisible, setIsProductsDrawerVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [suppliers, setSuppliers] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [editingSupplier, setEditingSupplier] = useState(null)
+  const [searchText, setSearchText] = useState('')
+
+  const [form] = Form.useForm()
 
   useEffect(() => {
-    fetchSuppliers();
-  }, [searchText]);
+    fetchSuppliers()
+  }, [])
 
   const fetchSuppliers = async () => {
+    setLoading(true)
     try {
-      setLoading(true);
-      const response = await suppliersAPI.getAll({
-        search: searchText
-      });
-      
-      if (response.data.success) {
-        setSuppliers(response.data.data);
-        calculateStats(response.data.data);
-      }
+      const data = await api.getSuppliers({ search: searchText })
+      setSuppliers(data)
     } catch (error) {
-      toast.error('Lỗi khi tải danh sách nhà cung cấp');
-      console.error('Error fetching suppliers:', error);
+      message.error('Lỗi tải nhà cung cấp: ' + error.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const calculateStats = (supplierData) => {
-    const stats = {
-      total: supplierData.length,
-      totalDebt: supplierData.reduce((sum, s) => sum + (s.total_debt || 0), 0),
-      totalCreditLimit: supplierData.reduce((sum, s) => sum + (s.credit_limit || 0), 0)
-    };
-    setStats(stats);
-  };
+  const handleCreate = () => {
+    setEditingSupplier(null)
+    form.resetFields()
+    setModalVisible(true)
+  }
 
-  const showModal = (supplier = null) => {
-    setEditingSupplier(supplier);
-    setIsModalVisible(true);
-    if (supplier) {
-      form.setFieldsValue(supplier);
-    } else {
-      form.resetFields();
+  const handleEdit = (supplier) => {
+    setEditingSupplier(supplier)
+    form.setFieldsValue(supplier)
+    setModalVisible(true)
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await api.deleteSupplier(id)
+      message.success('Xóa nhà cung cấp thành công')
+      fetchSuppliers()
+    } catch (error) {
+      message.error('Lỗi xóa nhà cung cấp: ' + error.message)
     }
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    setEditingSupplier(null);
-    form.resetFields();
-  };
+  }
 
   const handleSubmit = async (values) => {
     try {
       if (editingSupplier) {
-        await suppliersAPI.update(editingSupplier.id, values);
-        toast.success('Cập nhật nhà cung cấp thành công');
+        await api.updateSupplier(editingSupplier.id, values)
+        message.success('Cập nhật nhà cung cấp thành công')
       } else {
-        await suppliersAPI.create(values);
-        toast.success('Tạo nhà cung cấp thành công');
+        await api.createSupplier(values)
+        message.success('Tạo nhà cung cấp thành công')
       }
-      
-      handleCancel();
-      fetchSuppliers();
+      setModalVisible(false)
+      fetchSuppliers()
     } catch (error) {
-      toast.error(`Lỗi khi ${editingSupplier ? 'cập nhật' : 'tạo'} nhà cung cấp`);
-      console.error('Error saving supplier:', error);
+      message.error('Lỗi lưu nhà cung cấp: ' + error.message)
     }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await suppliersAPI.delete(id);
-      toast.success('Xóa nhà cung cấp thành công');
-      fetchSuppliers();
-    } catch (error) {
-      toast.error('Lỗi khi xóa nhà cung cấp');
-      console.error('Error deleting supplier:', error);
-    }
-  };
-
-  const showSupplierDetail = async (supplier) => {
-    try {
-      const response = await suppliersAPI.getById(supplier.id);
-      if (response.data.success) {
-        setSelectedSupplier(response.data.data);
-        setIsDetailDrawerVisible(true);
-      }
-    } catch (error) {
-      toast.error('Lỗi khi tải thông tin nhà cung cấp');
-    }
-  };
-
-  const showSupplierProducts = async (supplier) => {
-    try {
-      setSupplierProductsLoading(true);
-      setSelectedSupplier(supplier);
-      setIsProductsDrawerVisible(true);
-      
-      console.log(`🔍 Loading products for supplier: ${supplier.name} (ID: ${supplier.id})`);
-      
-      // NEW: Use dedicated endpoint for supplier products
-      try {
-        const response = await api.get(`/suppliers/${supplier.id}/products`);
-        
-        if (response.data.success) {
-          console.log(`✅ Found ${response.data.data.length} products from supplier API`);
-          setSupplierProducts(response.data.data);
-          
-          if (response.data.data.length > 0) {
-            toast.success(`🎯 Tìm thấy ${response.data.data.length} sản phẩm từ nhà cung cấp "${supplier.name}"`);
-          } else {
-            toast.warning(`⚠️ Nhà cung cấp "${supplier.name}" chưa có sản phẩm nào trong hệ thống`);
-          }
-          return; // Exit early if API call successful
-        }
-      } catch (apiError) {
-        console.warn('Supplier products API failed, falling back to search methods:', apiError);
-      }
-      
-      // FALLBACK: Use search methods if API fails
-      const allProducts = [];
-      
-      // Method 1: Search serials by supplier name
-      try {
-        const serialsResponse = await api.get('/serials/search', {
-          params: {
-            q: supplier.name,
-            status: 'all',
-            limit: 1000
-          }
-        });
-        
-        if (serialsResponse.data.success) {
-          console.log(`📦 Found ${serialsResponse.data.data.length} serials from search`);
-          allProducts.push(...serialsResponse.data.data);
-        }
-      } catch (error) {
-        console.warn('Method 1 failed:', error);
-      }
-      
-      // Method 2: Search by supplier code if no results
-      if (supplier.code && allProducts.length === 0) {
-        try {
-          const serialsByCodeResponse = await api.get('/serials/search', {
-            params: {
-              q: supplier.code,
-              status: 'all',
-              limit: 1000
-            }
-          });
-          
-          if (serialsByCodeResponse.data.success) {
-            console.log(`📦 Found ${serialsByCodeResponse.data.data.length} serials by code`);
-            allProducts.push(...serialsByCodeResponse.data.data);
-          }
-        } catch (error) {
-          console.warn('Method 2 failed:', error);
-        }
-      }
-      
-      // Đã loại bỏ mockProducts, allProducts.push(...mockProducts), toast.info demo data. Chỉ giữ lại logic lấy dữ liệu thật từ API.
-      
-      // Remove duplicates and set results
-      const uniqueProducts = allProducts.filter((product, index, self) => 
-        index === self.findIndex(p => p.serial_number === product.serial_number)
-      );
-      
-      console.log(`✅ Final result: ${uniqueProducts.length} unique products for supplier ${supplier.name}`);
-      setSupplierProducts(uniqueProducts);
-      
-      if (uniqueProducts.length > 0) {
-        toast.success(`🎯 Tìm thấy ${uniqueProducts.length} sản phẩm từ nhà cung cấp "${supplier.name}"`);
-      } else {
-        toast.warning(`⚠️ Nhà cung cấp "${supplier.name}" chưa có sản phẩm nào hoặc chưa có dữ liệu trong hệ thống`);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching supplier products:', error);
-      setSupplierProducts([]);
-      toast.error('Lỗi khi tải danh sách sản phẩm của nhà cung cấp');
-    } finally {
-      setSupplierProductsLoading(false);
-    }
-  };
+  }
 
   const columns = [
-    {
-      title: 'Mã NCC',
-      dataIndex: 'code',
-      key: 'code',
-      width: 80,
-      fixed: 'left',
-      render: (text) => <Text strong style={{ color: '#1890ff' }}>{text}</Text>
-    },
     {
       title: 'Tên nhà cung cấp',
       dataIndex: 'name',
       key: 'name',
-      width: 200,
-      fixed: 'left',
-      render: (text) => (
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar 
-            size="small" 
-            icon={<ShopOutlined />} 
-            style={{ 
-              backgroundColor: '#f0f0f0', 
-              color: '#1890ff',
-              marginRight: 8 
-            }} 
-          />
-          <Text strong style={{ fontSize: '13px' }}>{text}</Text>
-        </div>
-      )
-    },
-    {
-      title: 'Người liên hệ',
-      dataIndex: 'contact_person',
-      key: 'contact_person',
-      width: 140,
-      render: (text) => (
-        <div style={{ fontSize: '12px' }}>
-          {text ? (
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <UserOutlined style={{ marginRight: 4, color: '#666' }} />
-              <Text ellipsis style={{ maxWidth: '100px' }}>{text}</Text>
-            </div>
-          ) : (
-            <Text type="secondary" style={{ fontSize: '11px' }}>Chưa có</Text>
-          )}
+      render: (text, record) => (
+        <div>
+          <div style={{ fontWeight: 'bold' }}>{text}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            Mã: <Text code>{record.code}</Text>
+          </div>
         </div>
       )
     },
     {
       title: 'Liên hệ',
-      key: 'contact_info',
-      width: 160,
+      key: 'contact',
       render: (_, record) => (
-        <div style={{ fontSize: '11px', lineHeight: '1.2' }}>
-          {record.phone && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              marginBottom: 2,
-              color: '#666' 
-            }}>
-              <PhoneOutlined style={{ marginRight: 4, fontSize: '10px' }} />
-              <Text ellipsis style={{ maxWidth: '110px', fontSize: '11px' }}>
-                {record.phone}
-              </Text>
-            </div>
-          )}
-          {record.email && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              color: '#666' 
-            }}>
-              <MailOutlined style={{ marginRight: 4, fontSize: '10px' }} />
-              <Text ellipsis style={{ maxWidth: '110px', fontSize: '11px' }}>
-                {record.email}
-              </Text>
-            </div>
-          )}
-          {!record.phone && !record.email && (
-            <Text type="secondary" style={{ fontSize: '11px' }}>Chưa có</Text>
-          )}
+        <div>
+          <div>{record.contact_person}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            <PhoneOutlined /> {record.phone}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            <MailOutlined /> {record.email}
+          </div>
         </div>
       )
     },
     {
       title: 'Địa chỉ',
-      key: 'address_info',
-      width: 180,
-      render: (_, record) => (
-        <div style={{ fontSize: '11px', lineHeight: '1.3' }}>
-          {record.address && (
-            <div style={{ marginBottom: 2, color: '#333' }}>
-              <Text ellipsis style={{ maxWidth: '150px', fontSize: '11px' }}>
-                {record.address}
-              </Text>
-            </div>
-          )}
-          {record.city && (
-            <div style={{ color: '#666' }}>
-              <HomeOutlined style={{ marginRight: 4, fontSize: '10px' }} />
-              <Text style={{ fontSize: '11px' }}>{record.city}</Text>
-            </div>
-          )}
-          {!record.address && !record.city && (
-            <Text type="secondary" style={{ fontSize: '11px' }}>Chưa có</Text>
-          )}
-        </div>
-      )
+      dataIndex: 'address',
+      key: 'address'
     },
     {
-      title: 'Công nợ',
-      dataIndex: 'total_debt',
-      key: 'total_debt',
-      width: 100,
-      align: 'right',
-      render: (debt) => (
-        <div style={{ textAlign: 'right' }}>
-          <Text 
-            strong 
-            style={{ 
-              color: debt > 0 ? '#ff4d4f' : '#52c41a',
-              fontSize: '12px'
-            }}
-          >
-            {formatCurrency(debt || 0)}
-          </Text>
-        </div>
-      ),
-      sorter: (a, b) => (a.total_debt || 0) - (b.total_debt || 0)
-    },
-    {
-      title: 'Hạn mức',
-      dataIndex: 'credit_limit',
-      key: 'credit_limit',
-      width: 100,
-      align: 'right',
-      render: (limit) => (
-        <div style={{ textAlign: 'right' }}>
-          <Text style={{ color: '#1890ff', fontSize: '12px' }}>
-            {formatCurrency(limit || 0)}
-          </Text>
-        </div>
-      )
-    },
-    {
-      title: 'Thanh toán',
-      dataIndex: 'payment_terms',
-      key: 'payment_terms',
-      width: 100,
-      render: (terms) => (
-        <Tag 
-          color="blue" 
-          style={{ 
-            fontSize: '11px',
-            margin: 0,
-            padding: '2px 6px',
-            lineHeight: '1.2'
-          }}
-        >
-          {terms || 'Không xác định'}
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'active' ? 'green' : 'red'}>
+          {status === 'active' ? 'Hoạt động' : 'Ngưng hợp tác'}
         </Tag>
       )
     },
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 120,
-      fixed: 'right',
+      width: 150,
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="Xem chi tiết nhà cung cấp">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => showSupplierDetail(record)}
-              style={{ padding: '2px 4px' }}
-              data-testid="view-supplier-btn"
-            />
-          </Tooltip>
-          <Tooltip title="Xem sản phẩm đã cung cấp">
-            <Button
-              type="text"
-              size="small"
-              icon={<ShopOutlined />}
-              onClick={() => showSupplierProducts(record)}
-              style={{ padding: '2px 4px', color: '#52c41a' }}
-              data-testid="view-products-btn"
-            />
-          </Tooltip>
           <Tooltip title="Chỉnh sửa">
             <Button
               type="text"
-              size="small"
               icon={<EditOutlined />}
-              onClick={() => showModal(record)}
-              style={{ padding: '2px 4px', color: '#1890ff' }}
-              data-testid="edit-supplier-btn"
+              onClick={() => handleEdit(record)}
             />
           </Tooltip>
           <Popconfirm
-            title="Bạn có chắc chắn muốn xóa nhà cung cấp này?"
+            title="Bạn có chắc muốn xóa nhà cung cấp này?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Có"
-            cancelText="Không"
-            placement="topRight"
+            okText="Xóa"
+            cancelText="Hủy"
           >
             <Tooltip title="Xóa">
               <Button
                 type="text"
                 danger
-                size="small"
                 icon={<DeleteOutlined />}
-                style={{ padding: '2px 4px' }}
-                data-testid="delete-supplier-btn"
               />
             </Tooltip>
           </Popconfirm>
         </Space>
       )
     }
-  ];
+  ]
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* Header thống kê - Responsive */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-        <Col xs={24} sm={8}>
-          <Card size="small" style={{ height: '100%' }}>
-            <Statistic
-              title="Tổng nhà cung cấp"
-              value={stats.total}
-              prefix={<ShopOutlined />}
-              valueStyle={{ color: '#1890ff', fontSize: '20px' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card size="small" style={{ height: '100%' }}>
-            <Statistic
-              title="Tổng công nợ"
-              value={stats.totalDebt}
-              formatter={value => formatCurrency(value)}
-              prefix={<CreditCardOutlined />}
-              valueStyle={{ color: '#ff4d4f', fontSize: '20px' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card size="small" style={{ height: '100%' }}>
-            <Statistic
-              title="Tổng hạn mức"
-              value={stats.totalCreditLimit}
-              formatter={value => formatCurrency(value)}
-              prefix={<BankOutlined />}
-              valueStyle={{ color: '#52c41a', fontSize: '20px' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+    <div style={{ padding: '24px' }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2}>Quản lý Nhà cung cấp</Title>
+        
+        <Card style={{ marginBottom: 16 }}>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Input
+                placeholder="Tìm kiếm nhà cung cấp..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onPressEnter={fetchSuppliers}
+                allowClear
+              />
+            </Col>
+            <Col span={16}>
+              <Space>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+                  Thêm nhà cung cấp
+                </Button>
+                <Button onClick={fetchSuppliers}>
+                  Tìm kiếm
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
+      </div>
 
-      {/* Main Content */}
-      <Card 
-        title={
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <ContactsOutlined style={{ marginRight: 8 }} />
-            Quản lý nhà cung cấp
-          </div>
-        }
-        size="small"
-      >
-        {/* Filters - Responsive */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={16} md={18}>
-            <Search
-              placeholder="Tìm theo tên, mã NCC, người liên hệ..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onSearch={fetchSuppliers}
-              enterButton={<SearchOutlined />}
-              allowClear
-              size="middle"
-            />
-          </Col>
-          <Col xs={24} sm={8} md={6} style={{ textAlign: 'right' }}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => showModal()}
-              size="middle"
-              block
-              data-testid="add-supplier-btn"
-            >
-              Thêm nhà cung cấp
-            </Button>
-          </Col>
-        </Row>
-
-        {/* Table với responsive scroll */}
+      <Card>
         <Table
           columns={columns}
           dataSource={suppliers}
           rowKey="id"
           loading={loading}
-          size="small"
           pagination={{
-            total: suppliers.length,
-            pageSize: 15,
+            pageSize: 10,
             showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => 
-              `${range[0]}-${range[1]} của ${total} nhà cung cấp`,
-            responsive: true,
-            size: 'small'
-          }}
-          scroll={{ 
-            x: 1100,
-            y: 'calc(100vh - 450px)'
-          }}
-          style={{ 
-            backgroundColor: '#fafafa',
-            borderRadius: '6px'
+            showTotal: (total) => `Tổng ${total} nhà cung cấp`
           }}
         />
       </Card>
 
-      {/* Modal thêm/sửa nhà cung cấp */}
-      <SupplierFormModal
-        isModalVisible={isModalVisible}
-        handleCancel={handleCancel}
-        handleSubmit={handleSubmit}
-        editingSupplier={editingSupplier}
-        form={form}
-      />
-
-      {/* Drawer chi tiết nhà cung cấp */}
-      <Drawer
-        title={
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <EyeOutlined style={{ marginRight: 8 }} />
-            Thông tin chi tiết nhà cung cấp
-          </div>
-        }
-        placement="right"
-        onClose={() => setIsDetailDrawerVisible(false)}
-        open={isDetailDrawerVisible}
-        width={500}
+      <Modal
+        title={editingSupplier ? 'Chỉnh sửa nhà cung cấp' : 'Thêm nhà cung cấp'}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={800}
+        destroyOnClose
       >
-        {selectedSupplier && (
-          <div>
-            <Card title="Thông tin cơ bản" size="small" style={{ marginBottom: 16 }}>
-              <div style={{ lineHeight: '1.8' }}>
-                <p><Text strong>Mã nhà cung cấp:</Text> {selectedSupplier.code}</p>
-                <p><Text strong>Tên:</Text> {selectedSupplier.name}</p>
-                <p><Text strong>Người liên hệ:</Text> {selectedSupplier.contact_person || 'Chưa có'}</p>
-                <p><Text strong>Điện thoại:</Text> {selectedSupplier.phone || 'Chưa có'}</p>
-                <p><Text strong>Email:</Text> {selectedSupplier.email || 'Chưa có'}</p>
-                <p><Text strong>Mã số thuế:</Text> {selectedSupplier.tax_code || 'Chưa có'}</p>
-              </div>
-            </Card>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="name"
+                label="Tên nhà cung cấp"
+                rules={[{ required: true, message: 'Vui lòng nhập tên nhà cung cấp' }]}
+              >
+                <Input placeholder="Nhập tên nhà cung cấp" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="code"
+                label="Mã nhà cung cấp"
+                rules={[{ required: true, message: 'Vui lòng nhập mã nhà cung cấp' }]}
+              >
+                <Input placeholder="Nhập mã nhà cung cấp" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            <Card title="Thông tin tài chính" size="small" style={{ marginBottom: 16 }}>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Statistic
-                    title="Công nợ hiện tại"
-                    value={selectedSupplier.total_debt || 0}
-                    formatter={value => formatCurrency(value)}
-                    valueStyle={{ 
-                      color: selectedSupplier.total_debt > 0 ? '#ff4d4f' : '#52c41a',
-                      fontSize: '18px'
-                    }}
-                  />
-                </Col>
-                <Col span={12}>
-                  <Statistic
-                    title="Hạn mức tín dụng"
-                    value={selectedSupplier.credit_limit || 0}
-                    formatter={value => formatCurrency(value)}
-                    valueStyle={{ color: '#1890ff', fontSize: '18px' }}
-                  />
-                </Col>
-              </Row>
-              <p style={{ marginTop: 16 }}>
-                <Text strong>Điều khoản thanh toán:</Text> {selectedSupplier.payment_terms || 'Không xác định'}
-              </p>
-            </Card>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="contact_person"
+                label="Người liên hệ"
+              >
+                <Input placeholder="Nhập tên người liên hệ" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="phone"
+                label="Số điện thoại"
+              >
+                <Input placeholder="Nhập số điện thoại" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            {(selectedSupplier.address || selectedSupplier.city) && (
-              <Card title="Địa chỉ" size="small" style={{ marginBottom: 16 }}>
-                {selectedSupplier.address && <p>{selectedSupplier.address}</p>}
-                {selectedSupplier.city && <p><Text strong>Thành phố:</Text> {selectedSupplier.city}</p>}
-              </Card>
-            )}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+              >
+                <Input placeholder="Nhập email" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="status"
+                label="Trạng thái"
+              >
+                <Select placeholder="Chọn trạng thái">
+                  <Select.Option value="active">Hoạt động</Select.Option>
+                  <Select.Option value="inactive">Ngưng hợp tác</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
 
-            {selectedSupplier.notes && (
-              <Card title="Ghi chú" size="small">
-                <p>{selectedSupplier.notes}</p>
-              </Card>
-            )}
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+          >
+            <TextArea rows={3} placeholder="Nhập địa chỉ" />
+          </Form.Item>
+
+          <Form.Item
+            name="notes"
+            label="Ghi chú"
+          >
+            <TextArea rows={3} placeholder="Nhập ghi chú" />
+          </Form.Item>
+
+          <div style={{ textAlign: 'right', marginTop: 24 }}>
+            <Space>
+              <Button onClick={() => setModalVisible(false)}>
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit">
+                {editingSupplier ? 'Cập nhật' : 'Tạo mới'}
+              </Button>
+            </Space>
           </div>
-        )}
-      </Drawer>
-
-      {/* 🎯 NEW: Drawer hiển thị sản phẩm của nhà cung cấp */}
-      <Drawer
-        title={
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <ShopOutlined style={{ marginRight: 8, color: '#52c41a' }} />
-            Sản phẩm đã cung cấp bởi: {selectedSupplier?.name}
-          </div>
-        }
-        placement="right"
-        onClose={() => setIsProductsDrawerVisible(false)}
-        open={isProductsDrawerVisible}
-        width={1200}
-        style={{ zIndex: 1001 }}
-      >
-        {selectedSupplier && (
-          <div>
-            {/* Supplier Info Header */}
-            <Card size="small" style={{ marginBottom: 16, background: 'linear-gradient(135deg, #f6ffed, #e8f4fd)' }}>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <div>
-                    <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
-                      🏪 {selectedSupplier.name}
-                    </Text>
-                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                      📋 Mã NCC: {selectedSupplier.code}
-                    </div>
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div style={{ textAlign: 'right' }}>
-                    {selectedSupplier.phone && (
-                      <div style={{ fontSize: '12px', color: '#666' }}>
-                        📞 {selectedSupplier.phone}
-                      </div>
-                    )}
-                    {selectedSupplier.contact_person && (
-                      <div style={{ fontSize: '12px', color: '#666' }}>
-                        👤 {selectedSupplier.contact_person}
-                      </div>
-                    )}
-                  </div>
-                </Col>
-              </Row>
-            </Card>
-
-            {/* Products Summary Stats */}
-            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-              <Col span={8}>
-                <Card size="small" style={{ textAlign: 'center', borderLeft: '4px solid #52c41a' }}>
-                  <Statistic
-                    title="Tổng sản phẩm"
-                    value={supplierProducts.length}
-                    prefix={<ShopOutlined style={{ color: '#52c41a' }} />}
-                    valueStyle={{ color: '#52c41a', fontSize: '20px' }}
-                  />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card size="small" style={{ textAlign: 'center', borderLeft: '4px solid #1890ff' }}>
-                  <Statistic
-                    title="Có sẵn"
-                    value={supplierProducts.filter(p => p.status === 'available').length}
-                    prefix={<ShopOutlined style={{ color: '#1890ff' }} />}
-                    valueStyle={{ color: '#1890ff', fontSize: '20px' }}
-                  />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card size="small" style={{ textAlign: 'center', borderLeft: '4px solid #ff4d4f' }}>
-                  <Statistic
-                    title="Đã bán"
-                    value={supplierProducts.filter(p => p.status === 'sold').length}
-                    prefix={<ShopOutlined style={{ color: '#ff4d4f' }} />}
-                    valueStyle={{ color: '#ff4d4f', fontSize: '20px' }}
-                  />
-                </Card>
-              </Col>
-            </Row>
-
-            {/* Products Table */}
-            <Card title="📦 Danh sách sản phẩm đã cung cấp" size="small">
-              <Table
-                columns={[
-                  {
-                    title: 'Serial Number',
-                    dataIndex: 'serial_number',
-                    key: 'serial_number',
-                    width: 120,
-                    fixed: 'left',
-                    render: (text) => (
-                      <Text copyable strong style={{ color: '#1890ff' }}>
-                        {text}
-                      </Text>
-                    )
-                  },
-                  {
-                    title: 'Tên sản phẩm',
-                    dataIndex: 'product_name',
-                    key: 'product_name',
-                    width: 180,
-                    render: (text) => (
-                      <div>
-                        <div style={{ fontWeight: 'bold' }}>
-                          📦 {text || 'Sản phẩm chưa xác định'}
-                        </div>
-                      </div>
-                    )
-                  },
-                  {
-                    title: 'Ngày nhập',
-                    dataIndex: 'import_time_display',
-                    key: 'import_date',
-                    width: 140,
-                    render: (text, record) => (
-                      <div style={{ fontSize: '12px' }}>
-                        📅 {text || formatDate(record.created_at) || 'Chưa xác định'}
-                      </div>
-                    )
-                  },
-                  {
-                    title: 'Giá nhập',
-                    dataIndex: 'purchase_price',
-                    key: 'purchase_price',
-                    width: 100,
-                    align: 'right',
-                    render: (price) => (
-                      <Text strong style={{ color: '#52c41a', fontSize: '12px' }}>
-                        {formatCurrency(price || 0)}
-                      </Text>
-                    )
-                  },
-                  {
-                    title: 'Trạng thái',
-                    dataIndex: 'status',
-                    key: 'status',
-                    width: 100,
-                    render: (status) => {
-                      const statusMap = {
-                        'available': { color: 'green', text: 'Có sẵn' },
-                        'sold': { color: 'red', text: 'Đã bán' },
-                        'damaged': { color: 'orange', text: 'Hỏng' },
-                        'reserved': { color: 'blue', text: 'Đã đặt' }
-                      };
-                      const statusInfo = statusMap[status] || { color: 'default', text: status };
-                      return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
-                    }
-                  },
-                  {
-                    title: 'Tình trạng',
-                    dataIndex: 'condition_grade',
-                    key: 'condition',
-                    width: 100,
-                    render: (condition) => {
-                      const conditionMap = {
-                        'new': { color: 'green', text: 'Mới' },
-                        'like_new': { color: 'cyan', text: 'Như mới' },
-                        'good': { color: 'blue', text: 'Tốt' },
-                        'fair': { color: 'orange', text: 'Khá' },
-                        'poor': { color: 'red', text: 'Kém' }
-                      };
-                      const conditionInfo = conditionMap[condition] || { color: 'default', text: condition || 'Mới' };
-                      return <Tag color={conditionInfo.color}>{conditionInfo.text}</Tag>;
-                    }
-                  },
-                  {
-                    title: 'Vị trí',
-                    dataIndex: 'location',
-                    key: 'location',
-                    width: 80,
-                    render: (location) => (
-                      <Tag icon={<HomeOutlined />} color="blue">
-                        {location || 'HCM'}
-                      </Tag>
-                    )
-                  },
-                  {
-                    title: 'Thời gian bảo hành',
-                    key: 'warranty',
-                    width: 150,
-                    render: (_, record) => {
-                      if (record.warranty_start_date && record.warranty_end_date) {
-                        const startDate = new Date(record.warranty_start_date);
-                        const endDate = new Date(record.warranty_end_date);
-                        const diffMonths = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24 * 30));
-                        
-                        return (
-                          <div style={{ fontSize: '11px' }}>
-                            <div style={{ fontWeight: 'bold', color: '#52c41a' }}>
-                              🛡️ {diffMonths} tháng
-                            </div>
-                            <div style={{ color: '#666' }}>
-                              📅 {startDate.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} → {endDate.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return <Text type="secondary" style={{ fontSize: '11px' }}>Chưa có bảo hành</Text>;
-                    }
-                  },
-                  {
-                    title: 'Thông tin liên hệ',
-                    key: 'contact_details',
-                    width: 200,
-                    render: (_, record) => (
-                      <div style={{ fontSize: '11px', lineHeight: '1.3' }}>
-                        <div style={{ fontWeight: 'bold', color: '#1890ff' }}>
-                          🏪 {selectedSupplier.name}
-                        </div>
-                        {selectedSupplier.phone && (
-                          <div style={{ color: '#666' }}>
-                            📞 {selectedSupplier.phone}
-                          </div>
-                        )}
-                        {selectedSupplier.email && (
-                          <div style={{ color: '#666' }}>
-                            📧 {selectedSupplier.email}
-                          </div>
-                        )}
-                        {selectedSupplier.address && (
-                          <div style={{ color: '#666' }}>
-                            📍 {selectedSupplier.address}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  }
-                ]}
-                dataSource={supplierProducts}
-                rowKey={(record) => record.id || record.serial_number}
-                loading={supplierProductsLoading}
-                pagination={{
-                  pageSize: 20,
-                  showSizeChanger: true,
-                  showTotal: (total, range) => 
-                    `${range[0]}-${range[1]} của ${total} sản phẩm`,
-                  size: 'small'
-                }}
-                scroll={{ x: 1100, y: 'calc(100vh - 400px)' }}
-                size="small"
-                locale={{
-                  emptyText: supplierProductsLoading ? 'Đang tải...' : 'Nhà cung cấp này chưa cung cấp sản phẩm nào'
-                }}
-              />
-            </Card>
-          </div>
-        )}
-      </Drawer>
+        </Form>
+      </Modal>
     </div>
-  );
-};
+  )
+}
 
-export default SuppliersPage; 
+export default SuppliersPage 

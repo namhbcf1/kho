@@ -1,259 +1,305 @@
-# 🏪 POS System - Advanced Point of Sale Solution
+# 🏪 POS Computer Store System - Hệ thống Quản lý Cửa hàng Máy tính
 
-A comprehensive, modern Point of Sale (POS) system built with React.js frontend and Cloudflare Workers backend, featuring enterprise-level security, authentication, and business management capabilities.
+## 🌟 Tổng quan
 
-## 🚀 Live Demo
+Hệ thống POS (Point of Sale) hoàn chỉnh cho cửa hàng máy tính, được xây dựng với React, Node.js và Cloudflare D1. Hệ thống cung cấp đầy đủ các tính năng quản lý bán hàng, kho hàng, khách hàng và báo cáo.
 
-- **Frontend**: https://0c8058ce.pos-system-production-2025.pages.dev
-- **Backend API**: https://pos-backend.bangachieu2.workers.dev
-- **Demo Credentials**: `admin` / `admin123`
+## 🚀 Demo Live
 
-## ✨ Features
+- **Frontend**: https://fb61cf29.computer-store-frontend.pages.dev
+- **Backend API**: https://pos-computer-store-backend.bangachieu2.workers.dev
+- **API Health**: https://pos-computer-store-backend.bangachieu2.workers.dev/api/health
 
-### 🔐 Authentication & Security
-- JWT-based authentication with role-based access control
-- Secure password hashing with bcrypt
-- Rate limiting and input validation
-- Activity logging and audit trails
-- CSP headers and security middleware
-- Protected routes and session management
+## ✨ Tính năng chính
 
-### 🛍️ Core POS Functionality
-- **Point of Sale**: Complete checkout system with cart management
-- **Product Management**: Inventory tracking with categories and suppliers
-- **Order Management**: Order processing and history tracking
-- **Customer Management**: Customer profiles and purchase history
-- **Serial Number Tracking**: Advanced serial number management
-- **Multi-payment Methods**: Cash, card, and digital payments
+### 🎯 Quản lý Bán hàng (POS)
+- ✅ Giao diện bán hàng trực quan
+- ✅ Tìm kiếm sản phẩm theo tên/SKU/barcode
+- ✅ Quản lý giỏ hàng thời gian thực
+- ✅ Xử lý thanh toán đa phương thức
+- ✅ In hóa đơn tự động
+- ✅ Quản lý khách hàng trong giao dịch
 
-### 📊 Business Intelligence
-- **Financial Reports**: Revenue, profit, and expense tracking
-- **Inventory Reports**: Stock levels and movement analysis
-- **Sales Analytics**: Performance metrics and trends
-- **Customer Analytics**: Purchase patterns and loyalty tracking
-- **Supplier Management**: Vendor relationships and procurement
+### 📦 Quản lý Sản phẩm
+- ✅ CRUD sản phẩm đầy đủ
+- ✅ Quản lý danh mục và thương hiệu
+- ✅ Theo dõi tồn kho thời gian thực
+- ✅ Quản lý giá bán và giá khuyến mãi
+- ✅ Upload và quản lý hình ảnh
+- ✅ Thông số kỹ thuật chi tiết
 
-### 🔧 Advanced Features
-- **Debt Management**: Customer credit and payment tracking
-- **Warranty System**: Product warranty and service management
-- **User Management**: Multi-user system with role permissions
-- **Responsive Design**: Mobile-first approach with PWA capabilities
-- **Real-time Updates**: Live inventory and sales updates
-- **Offline Support**: Works without internet connection
+### 🔢 Quản lý Serial Numbers
+- ✅ Theo dõi serial number từng sản phẩm
+- ✅ Trạng thái serial (trong kho, đã bán, bảo hành)
+- ✅ Import/Export serial numbers
+- ✅ Lịch sử di chuyển serial
+- ✅ Quản lý vị trí kho
 
-## 🛠️ Technology Stack
+### 👥 Quản lý Khách hàng
+- ✅ Thông tin khách hàng chi tiết
+- ✅ Lịch sử mua hàng
+- ✅ Tích điểm và ưu đãi
+- ✅ Tìm kiếm và phân loại
+- ✅ Xuất báo cáo khách hàng
+
+### 📋 Quản lý Đơn hàng
+- ✅ Theo dõi trạng thái đơn hàng
+- ✅ Lịch sử giao dịch
+- ✅ In hóa đơn và phiếu giao hàng
+- ✅ Quản lý thanh toán
+- ✅ Báo cáo doanh thu
+
+### 🛠️ Quản lý Bảo hành
+- ✅ Tạo và theo dõi phiếu bảo hành
+- ✅ Quản lý quy trình sửa chữa
+- ✅ Lịch sử bảo hành sản phẩm
+- ✅ Thông báo hết hạn bảo hành
+- ✅ Báo cáo chi phí bảo hành
+
+### 🏢 Quản lý Nhà cung cấp
+- ✅ Thông tin nhà cung cấp
+- ✅ Điều khoản thanh toán
+- ✅ Lịch sử nhập hàng
+- ✅ Đánh giá nhà cung cấp
+
+### 👤 Quản lý Người dùng
+- ✅ Phân quyền người dùng (Admin, Manager, Staff)
+- ✅ Đặt lại mật khẩu
+- ✅ Quản lý trạng thái tài khoản
+- ✅ Lịch sử hoạt động
+
+### 📊 Báo cáo và Thống kê
+- ✅ Dashboard tổng quan
+- ✅ Báo cáo doanh thu theo thời gian
+- ✅ Thống kê sản phẩm bán chạy
+- ✅ Báo cáo tồn kho
+- ✅ Phân tích khách hàng
+
+## 🛠️ Công nghệ sử dụng
 
 ### Frontend
-- **React.js 18** - Modern UI framework
-- **Ant Design** - Professional UI components
-- **Axios** - HTTP client for API calls
-- **React Router** - Client-side routing
-- **Context API** - State management
-- **PWA** - Progressive Web App capabilities
+- **React 18** - UI Framework
+- **Ant Design** - Component Library
+- **React Router v6** - Routing
+- **Fetch API** - HTTP Client
 
 ### Backend
-- **Cloudflare Workers** - Serverless edge computing
-- **Hono.js** - Lightweight web framework
-- **D1 Database** - SQLite at the edge
-- **JWT** - JSON Web Token authentication
-- **bcrypt** - Password hashing
-- **Express.js** - Alternative Node.js server
+- **Hono.js** - Web Framework
+- **Cloudflare Workers** - Serverless Runtime
+- **Cloudflare D1** - SQLite Database
+- **JWT** - Authentication
 
-### Infrastructure
-- **Cloudflare Pages** - Frontend hosting
-- **Cloudflare Workers** - Backend API
-- **GitHub Actions** - CI/CD pipeline
-- **SQLite** - Database storage
+### Deployment
+- **Cloudflare Pages** - Frontend Hosting
+- **Cloudflare Workers** - Backend Hosting
+- **GitHub** - Version Control
 
-## 🏗️ Architecture
+## 📁 Cấu trúc Project
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React.js      │    │ Cloudflare      │    │   D1 Database   │
-│   Frontend      │◄──►│   Workers       │◄──►│   (SQLite)      │
-│                 │    │   Backend       │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+kho2/
+├── client/                 # Frontend React App
+│   ├── src/
+│   │   ├── components/     # Reusable Components
+│   │   ├── pages/         # Page Components
+│   │   ├── services/      # API Services
+│   │   ├── contexts/      # React Contexts
+│   │   └── utils/         # Utilities
+│   ├── public/           # Static Assets
+│   └── build/            # Production Build
+├── server/               # Backend API
+│   ├── src/              # Source Code
+│   ├── migrations/       # Database Migrations
+│   ├── models/          # Data Models
+│   └── routes/          # API Routes
+└── database/            # Database Schema
 ```
 
-## 🚀 Getting Started
+## 🚀 Cài đặt và Chạy
 
 ### Prerequisites
 - Node.js 18+
-- npm or yarn
-- Cloudflare account (for deployment)
+- npm hoặc yarn
+- Cloudflare account (cho deployment)
 
-### Local Development
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/namhbcf1/kho.git
-   cd kho
-   ```
-
-2. **Install dependencies**
-   ```bash
-   # Frontend
-   cd client
-   npm install
-   
-   # Backend
-   cd ../server
-   npm install
-   ```
-
-3. **Start development servers**
-   ```bash
-   # Frontend (runs on http://localhost:3000)
-   cd client
-   npm start
-   
-   # Backend (runs on http://localhost:3001)
-   cd server
-   npm start
-   ```
-
-### Production Deployment
-
-1. **Deploy Backend to Cloudflare Workers**
-   ```bash
-   cd server
-   npx wrangler deploy src/simple-complete.js
-   ```
-
-2. **Deploy Frontend to Cloudflare Pages**
-   ```bash
-   cd client
-   npm run build
-   npx wrangler pages deploy build --project-name=pos-system-production-2025
-   ```
-
-## 📁 Project Structure
-
-```
-kho/
-├── client/                 # React.js frontend
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Page components
-│   │   ├── contexts/       # React contexts
-│   │   ├── services/       # API services
-│   │   └── utils/          # Utility functions
-│   ├── public/             # Static assets
-│   └── build/              # Production build
-├── server/                 # Backend services
-│   ├── src/                # Source code
-│   │   ├── middleware/     # Authentication middleware
-│   │   ├── routes/         # API routes
-│   │   └── simple-complete.js # Main worker file
-│   ├── routes/             # Express.js routes
-│   └── migrations/         # Database migrations
-└── README.md
+### 1. Clone Repository
+```bash
+git clone https://github.com/your-username/pos-computer-store.git
+cd pos-computer-store
 ```
 
-## 🔐 Authentication System
+### 2. Cài đặt Dependencies
 
-### User Roles
-- **Admin**: Full system access
-- **Manager**: Store management capabilities
-- **Cashier**: POS and basic operations
+#### Frontend
+```bash
+cd client
+npm install
+```
 
-### Security Features
-- JWT token-based authentication
-- Password hashing with salt
-- Rate limiting (5 attempts per 15 minutes)
-- Session management
-- Activity logging
-- CORS protection
+#### Backend
+```bash
+cd server
+npm install
+```
 
-## 📊 Database Schema
+### 3. Cấu hình Environment
+
+#### Client (.env)
+```env
+REACT_APP_API_URL=http://localhost:8787/api
+```
+
+#### Server (wrangler.toml)
+```toml
+name = "pos-computer-store-backend"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pos-computer-store"
+database_id = "your-database-id"
+```
+
+### 4. Chạy Development
+
+#### Backend
+```bash
+cd server
+npm run dev
+```
+
+#### Frontend
+```bash
+cd client
+npm start
+```
+
+## 🗄️ Database Schema
 
 ### Core Tables
-- `users` - User accounts and authentication
-- `products` - Product catalog and inventory
-- `orders` - Sales transactions
-- `customers` - Customer management
-- `suppliers` - Vendor information
-- `activity_logs` - Audit trail
+- `products` - Sản phẩm
+- `categories` - Danh mục
+- `brands` - Thương hiệu
+- `customers` - Khách hàng
+- `orders` - Đơn hàng
+- `order_items` - Chi tiết đơn hàng
+- `serial_numbers` - Serial numbers
+- `suppliers` - Nhà cung cấp
+- `users` - Người dùng
+- `warranty_claims` - Phiếu bảo hành
 
 ### Advanced Tables
-- `order_items` - Order line items
-- `serial_numbers` - Product serial tracking
-- `inventory_movements` - Stock changes
-- `payments` - Payment transactions
-- `warranties` - Warranty tracking
+- `inventory_locations` - Vị trí kho
+- `stock_movements` - Biến động kho
+- `stock_alerts` - Cảnh báo tồn kho
+- `financial_transactions` - Giao dịch tài chính
 
-## 🔧 Configuration
+## 🔐 Authentication
 
-### Environment Variables
-```env
-# Backend
-JWT_SECRET=your-secret-key
-DB_NAME=pos-db
-CORS_ORIGIN=https://your-domain.com
+Hệ thống sử dụng JWT authentication với các role:
+- **Admin**: Toàn quyền
+- **Manager**: Quản lý cửa hàng
+- **Staff**: Nhân viên bán hàng
 
-# Frontend
-REACT_APP_API_URL=https://your-api.workers.dev
+### Demo Accounts
+- Admin: `admin@computerstore.com` / `admin123`
+- Manager: `manager@computerstore.com` / `manager123`
+- Staff: `staff@computerstore.com` / `staff123`
+
+## 📡 API Endpoints
+
+### Products
+- `GET /api/products` - Danh sách sản phẩm
+- `POST /api/products` - Tạo sản phẩm
+- `PUT /api/products/:id` - Cập nhật sản phẩm
+- `DELETE /api/products/:id` - Xóa sản phẩm
+
+### Orders
+- `GET /api/orders` - Danh sách đơn hàng
+- `POST /api/orders` - Tạo đơn hàng
+- `PUT /api/orders/:id/status` - Cập nhật trạng thái
+
+### Customers
+- `GET /api/customers` - Danh sách khách hàng
+- `POST /api/customers` - Tạo khách hàng
+- `PUT /api/customers/:id` - Cập nhật khách hàng
+
+### Serial Numbers
+- `GET /api/serial-numbers` - Danh sách serial
+- `POST /api/serial-numbers` - Tạo serial
+- `PUT /api/serial-numbers/:id` - Cập nhật serial
+
+### Users
+- `GET /api/users` - Danh sách người dùng
+- `POST /api/users` - Tạo người dùng
+- `POST /api/users/:id/reset-password` - Đặt lại mật khẩu
+
+## 🚀 Deployment
+
+### Frontend (Cloudflare Pages)
+```bash
+cd client
+npm run build
+npx wrangler pages deploy build
 ```
 
-### CSP Headers
+### Backend (Cloudflare Workers)
+```bash
+cd server
+npm run deploy
 ```
-Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:
-Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+### Database Migration
+```bash
+npx wrangler d1 execute pos-computer-store --remote --file=migrations/xxx.sql
 ```
 
 ## 🧪 Testing
 
-### Cypress E2E Tests
+### API Testing
 ```bash
-cd client
-npm run test:e2e
+# Test all endpoints
+node test-api-endpoints.js
 ```
 
-### Test Coverage
-- Authentication flows
-- POS operations
-- Navigation testing
-- Responsive design
-- Performance testing
+### Frontend Testing
+```bash
+cd client
+npm test
+```
 
 ## 📈 Performance
 
-### Optimization Features
-- Code splitting and lazy loading
-- Service worker caching
-- CDN delivery via Cloudflare
-- Image optimization
-- Bundle size optimization
+- **Frontend**: ~450KB gzipped
+- **Backend**: Sub-100ms response time
+- **Database**: SQLite with D1 optimization
+- **CDN**: Global edge deployment
 
-### Metrics
-- First Contentful Paint: < 1.5s
-- Largest Contentful Paint: < 2.5s
-- Time to Interactive: < 3.5s
-- Cumulative Layout Shift: < 0.1
+## 🔧 Troubleshooting
 
-## 🛡️ Security
+### Common Issues
 
-### Security Measures
-- JWT authentication
-- Password hashing (bcrypt)
-- Rate limiting
-- Input validation
-- XSS protection
-- CSRF protection
-- Secure headers
+1. **API 500 Errors**
+   - Check database schema
+   - Verify environment variables
+   - Check server logs
 
-### Compliance
-- GDPR compliant data handling
-- PCI DSS considerations
-- SOC 2 security practices
+2. **Frontend Build Errors**
+   - Clear node_modules and reinstall
+   - Check React version compatibility
+
+3. **Database Connection**
+   - Verify D1 database ID
+   - Check wrangler.toml configuration
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
 ## 📄 License
 
@@ -261,15 +307,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Ant Design for the UI components
-- Cloudflare for the infrastructure
-- React.js community for the framework
-- Open source contributors
+- Ant Design team for the excellent UI components
+- Cloudflare for the amazing edge platform
+- React team for the robust framework
 
 ## 📞 Support
 
-For support, email admin@example.com or create an issue in the GitHub repository.
+For support, email support@computerstore.com or create an issue on GitHub.
 
 ---
 
-**Built with ❤️ by the POS System Team** 
+**Made with ❤️ by Computer Store Team** 
