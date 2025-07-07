@@ -1,17 +1,34 @@
-const API_BASE_URL = 'https://pos-computer-store-backend.bangachieu2.workers.dev/api'
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://pos-computer-store-backend.bangachieu2.workers.dev/api'
 
 class API {
+  constructor() {
+    this.token = localStorage.getItem('authToken');
+  }
+
+  setToken(token) {
+    this.token = token;
+    if (token) {
+      localStorage.setItem('authToken', token);
+    } else {
+      localStorage.removeItem('authToken');
+    }
+  }
+
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`
     const config = {
       headers: {
         'Content-Type': 'application/json',
+        ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
         ...options.headers
       },
       ...options
     }
 
-    if (config.body && typeof config.body === 'object') {
+    // Handle FormData (for file uploads)
+    if (config.body instanceof FormData) {
+      delete config.headers['Content-Type']; // Let browser set it
+    } else if (config.body && typeof config.body === 'object') {
       config.body = JSON.stringify(config.body)
     }
 
@@ -19,7 +36,13 @@ class API {
       const response = await fetch(url, config)
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        if (response.status === 401) {
+          this.setToken(null);
+          window.location.href = '/login';
+          return;
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
       }
       
       const data = await response.json()
@@ -28,6 +51,39 @@ class API {
       console.error('API Error:', error)
       throw error
     }
+  }
+
+  // HTTP method helpers
+  async get(endpoint, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`${endpoint}${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async post(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: data
+    });
+  }
+
+  async put(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: data
+    });
+  }
+
+  async patch(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'PATCH',
+      body: data
+    });
+  }
+
+  async delete(endpoint) {
+    return this.request(endpoint, {
+      method: 'DELETE'
+    });
   }
 
   // Auth endpoints
@@ -282,4 +338,5 @@ class API {
 }
 
 const api = new API()
+export { api }
 export default api 
