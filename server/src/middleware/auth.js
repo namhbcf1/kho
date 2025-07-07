@@ -1,273 +1,350 @@
-// JWT Authentication Middleware
-export const authenticateToken = async (c, next) => {
-  try {
-    const authHeader = c.req.header('Authorization');
-    const token = authHeader && authHeader.split(' ')[1];
+import { sign, verify } from 'hono/jwt'
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import bcrypt from 'bcryptjs'
+import { v4 as uuidv4 } from 'uuid'
+import { z } from 'zod'
 
-    if (!token) {
-      return c.json({ error: 'Access token required' }, 401);
-    }
+// ================================
+// VALIDATION SCHEMAS
+// ================================
+const loginSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(6, 'Password must be at least 6 characters')
+})
 
-    // Use Web Crypto API for JWT verification (Cloudflare Workers compatible)
-    const decoded = await verifyJWT(token, c.env.JWT_SECRET);
-    c.set('user', decoded);
-    await next();
-  } catch (error) {
-    return c.json({ error: 'Invalid token' }, 403);
+const userSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  role: z.enum(['admin', 'manager', 'cashier']),
+  isActive: z.boolean().default(true)
+})
+
+// ================================
+// USER MANAGEMENT
+// ================================
+class UserService {
+  constructor(db) {
+    this.db = db
   }
-};
 
-// Role-based Authorization
-export const requireRole = (roles) => {
-  return async (c, next) => {
-    const user = c.get('user');
-    if (!user || !roles.includes(user.role)) {
-      return c.json({ error: 'Insufficient permissions' }, 403);
-    }
-    await next();
-  };
-};
-
-// Rate Limiting Middleware
-export const rateLimit = (requests = 100, windowMs = 60000) => {
-  const clients = new Map();
-  
-  return async (c, next) => {
-    const clientIP = c.req.header('CF-Connecting-IP') || 
-                    c.req.header('X-Forwarded-For') || 
-                    c.req.header('X-Real-IP') ||
-                    'unknown';
+  async createUser(userData) {
+    const user = userSchema.parse(userData)
+    const hashedPassword = await bcrypt.hash(userData.password, 12)
     
-    const now = Date.now();
-    const windowStart = now - windowMs;
+    const query = `
+      INSERT INTO users (id, email, password_hash, name, role, is_active, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      RETURNING id, email, name, role, is_active, created_at
+    `
     
-    if (!clients.has(clientIP)) {
-      clients.set(clientIP, []);
-    }
+    const result = await this.db.prepare(query)
+      .bind(user.id, user.email, hashedPassword, user.name, user.role, user.isActive)
+      .first()
     
-    const requests_log = clients.get(clientIP);
-    const filtered = requests_log.filter(time => time > windowStart);
-    
-    if (filtered.length >= requests) {
-      return c.json({ 
-        error: 'Too many requests',
-        retryAfter: Math.ceil(windowMs / 1000)
-      }, 429);
-    }
-    
-    filtered.push(now);
-    clients.set(clientIP, filtered);
-    
-    // Clean up old entries periodically
-    if (Math.random() < 0.01) { // 1% chance
-      for (const [ip, logs] of clients.entries()) {
-        const validLogs = logs.filter(time => time > windowStart);
-        if (validLogs.length === 0) {
-          clients.delete(ip);
-        } else {
-          clients.set(ip, validLogs);
-        }
-      }
-    }
-    
-    await next();
-  };
-};
-
-// Input Validation Middleware
-export const validateInput = (schema) => {
-  return async (c, next) => {
-    try {
-      const body = await c.req.json();
-      const validatedData = schema.parse(body);
-      c.set('validatedData', validatedData);
-      await next();
-    } catch (error) {
-      if (error.name === 'ZodError') {
-        return c.json({ 
-          error: 'Invalid input data',
-          details: error.errors.map(e => ({
-            field: e.path.join('.'),
-            message: e.message
-          }))
-        }, 400);
-      }
-      return c.json({ error: 'Invalid JSON' }, 400);
-    }
-  };
-};
-
-// Security Headers Middleware
-export const securityHeaders = async (c, next) => {
-  await next();
-  
-  // Add security headers
-  c.header('X-Content-Type-Options', 'nosniff');
-  c.header('X-Frame-Options', 'DENY');
-  c.header('X-XSS-Protection', '1; mode=block');
-  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
-  c.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
-  // CORS headers
-  const origin = c.req.header('Origin');
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://0ba925c1.pos-system-production-2025.pages.dev',
-    c.env.FRONTEND_URL
-  ].filter(Boolean);
-  
-  if (allowedOrigins.includes(origin)) {
-    c.header('Access-Control-Allow-Origin', origin);
+    return result
   }
-  
-  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  c.header('Access-Control-Allow-Credentials', 'true');
-};
 
-// JWT Utility Functions (Cloudflare Workers compatible)
-async function verifyJWT(token, secret) {
-  const [headerB64, payloadB64, signatureB64] = token.split('.');
-  
-  if (!headerB64 || !payloadB64 || !signatureB64) {
-    throw new Error('Invalid token format');
+  async findByEmail(email) {
+    const query = `
+      SELECT id, email, password_hash, name, role, is_active, last_login_at, created_at
+      FROM users 
+      WHERE email = ? AND is_active = 1
+    `
+    
+    return await this.db.prepare(query).bind(email).first()
   }
-  
-  // Verify signature
-  const data = `${headerB64}.${payloadB64}`;
-  const signature = await sign(data, secret);
-  
-  if (signature !== signatureB64) {
-    throw new Error('Invalid signature');
+
+  async updateLastLogin(userId) {
+    const query = `
+      UPDATE users 
+      SET last_login_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `
+    
+    await this.db.prepare(query).bind(userId).run()
   }
-  
-  // Decode payload
-  const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
-  
-  // Check expiration
-  if (payload.exp && payload.exp < Date.now() / 1000) {
-    throw new Error('Token expired');
+
+  async verifyPassword(plainPassword, hashedPassword) {
+    return await bcrypt.compare(plainPassword, hashedPassword)
   }
-  
-  return payload;
 }
 
-export async function signJWT(payload, secret, expiresIn = '8h') {
-  const header = { alg: 'HS256', typ: 'JWT' };
+// ================================
+// JWT UTILITIES
+// ================================
+function getJWTSecret(env) {
+  return env?.JWT_SECRET || 'fallback-dev-secret-change-in-production'
+}
+
+async function generateTokens(user, env) {
+  const secret = getJWTSecret(env)
+  const now = Math.floor(Date.now() / 1000)
   
-  // Calculate expiration
-  const now = Math.floor(Date.now() / 1000);
-  const expiration = now + parseExpiration(expiresIn);
+  const payload = {
+    sub: user.id, // subject
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    iat: now, // issued at
+    exp: now + (24 * 60 * 60), // expires in 24 hours
+    jti: uuidv4() // JWT ID for token tracking
+  }
   
-  const fullPayload = {
-    ...payload,
+  const accessToken = await sign(payload, secret)
+  
+  // Refresh token with longer expiry
+  const refreshPayload = {
+    sub: user.id,
+    type: 'refresh',
     iat: now,
-    exp: expiration
-  };
-  
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const payloadB64 = btoa(JSON.stringify(fullPayload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  
-  const data = `${headerB64}.${payloadB64}`;
-  const signature = await sign(data, secret);
-  
-  return `${data}.${signature}`;
-}
-
-async function sign(data, secret) {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const dataBuffer = encoder.encode(data);
-  
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  
-  const signature = await crypto.subtle.sign('HMAC', key, dataBuffer);
-  const signatureArray = new Uint8Array(signature);
-  
-  return btoa(String.fromCharCode(...signatureArray))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-}
-
-function parseExpiration(expiresIn) {
-  const units = {
-    's': 1,
-    'm': 60,
-    'h': 3600,
-    'd': 86400
-  };
-  
-  const match = expiresIn.match(/^(\d+)([smhd])$/);
-  if (!match) {
-    throw new Error('Invalid expiration format');
+    exp: now + (7 * 24 * 60 * 60), // 7 days
+    jti: uuidv4()
   }
   
-  const [, value, unit] = match;
-  return parseInt(value) * units[unit];
+  const refreshToken = await sign(refreshPayload, secret)
+  
+  return { accessToken, refreshToken }
 }
 
-// Password hashing utilities
-export async function hashPassword(password, salt = null) {
-  if (!salt) {
-    salt = crypto.getRandomValues(new Uint8Array(16));
-  }
-  
-  const encoder = new TextEncoder();
-  const passwordData = encoder.encode(password);
-  const saltedPassword = new Uint8Array(passwordData.length + salt.length);
-  saltedPassword.set(passwordData);
-  saltedPassword.set(salt, passwordData.length);
-  
-  const hash = await crypto.subtle.digest('SHA-256', saltedPassword);
-  const hashArray = new Uint8Array(hash);
-  
-  // Combine salt and hash
-  const combined = new Uint8Array(salt.length + hashArray.length);
-  combined.set(salt);
-  combined.set(hashArray, salt.length);
-  
-  return btoa(String.fromCharCode(...combined));
-}
-
-export async function verifyPassword(password, hashedPassword) {
+async function verifyToken(token, env) {
   try {
-    const combined = new Uint8Array(
-      atob(hashedPassword).split('').map(char => char.charCodeAt(0))
-    );
+    const secret = getJWTSecret(env)
+    const payload = await verify(token, secret)
     
-    const salt = combined.slice(0, 16);
-    const hash = combined.slice(16);
+    // Check if token is expired
+    const now = Math.floor(Date.now() / 1000)
+    if (payload.exp < now) {
+      throw new Error('Token expired')
+    }
     
-    const newHash = await hashPassword(password, salt);
-    return newHash === hashedPassword;
+    return payload
   } catch (error) {
-    return false;
+    console.error('Token verification failed:', error)
+    return null
   }
 }
 
-// Activity logging utility
-export async function logActivity(db, userId, action, tableName = null, recordId = null, details = null, ipAddress = null) {
-  try {
-    await db.prepare(`
-      INSERT INTO activity_logs (user_id, action, table_name, record_id, details, ip_address, timestamp)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      userId,
-      action,
-      tableName,
-      recordId,
-      details,
-      ipAddress,
-      new Date().toISOString()
-    ).run();
-  } catch (error) {
-    console.error('Failed to log activity:', error);
+// ================================
+// SESSION MANAGEMENT
+// ================================
+class SessionService {
+  constructor(db) {
+    this.db = db
   }
+
+  async createSession(userId, tokenId, expiresAt) {
+    const query = `
+      INSERT INTO user_sessions (id, user_id, token_hash, expires_at, created_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `
+    
+    const sessionId = uuidv4()
+    const tokenHash = await bcrypt.hash(tokenId, 10)
+    
+    await this.db.prepare(query)
+      .bind(sessionId, userId, tokenHash, new Date(expiresAt * 1000).toISOString())
+      .run()
+    
+    return sessionId
+  }
+
+  async validateSession(userId, tokenId) {
+    const query = `
+      SELECT id, token_hash, expires_at
+      FROM user_sessions 
+      WHERE user_id = ? AND expires_at > CURRENT_TIMESTAMP
+      ORDER BY created_at DESC
+    `
+    
+    const sessions = await this.db.prepare(query).bind(userId).all()
+    
+    for (const session of sessions.results || []) {
+      const isValid = await bcrypt.compare(tokenId, session.token_hash)
+      if (isValid) {
+        return session
+      }
+    }
+    
+    return null
+  }
+
+  async revokeSession(sessionId) {
+    const query = `DELETE FROM user_sessions WHERE id = ?`
+    await this.db.prepare(query).bind(sessionId).run()
+  }
+
+  async revokeAllUserSessions(userId) {
+    const query = `DELETE FROM user_sessions WHERE user_id = ?`
+    await this.db.prepare(query).bind(userId).run()
+  }
+
+  async cleanupExpiredSessions() {
+    const query = `DELETE FROM user_sessions WHERE expires_at <= CURRENT_TIMESTAMP`
+    await this.db.prepare(query).run()
+  }
+}
+
+// ================================
+// AUTHENTICATION MIDDLEWARE
+// ================================
+export async function authMiddleware(c, next) {
+  try {
+    // Get token from Authorization header or cookie
+    let token = c.req.header('Authorization')?.replace('Bearer ', '')
+    
+    if (!token) {
+      token = getCookie(c, 'access_token')
+    }
+    
+    if (!token) {
+      return c.json({
+        error: 'Unauthorized',
+        message: 'No authentication token provided',
+        code: 'NO_TOKEN'
+      }, 401)
+    }
+
+    // Verify JWT token
+    const payload = await verifyToken(token, c.env)
+    
+    if (!payload) {
+      return c.json({
+        error: 'Unauthorized',
+        message: 'Invalid or expired token',
+        code: 'INVALID_TOKEN'
+      }, 401)
+    }
+
+    // Validate session if database is available
+    if (c.env?.DB && payload.jti) {
+      const sessionService = new SessionService(c.env.DB)
+      const session = await sessionService.validateSession(payload.sub, payload.jti)
+      
+      if (!session) {
+        return c.json({
+          error: 'Unauthorized',
+          message: 'Session not found or expired',
+          code: 'INVALID_SESSION'
+        }, 401)
+      }
+    }
+
+    // Add user info to context
+    c.set('user', {
+      id: payload.sub,
+      email: payload.email,
+      name: payload.name,
+      role: payload.role,
+      tokenId: payload.jti
+    })
+    
+    // Add authorization helper
+    c.set('authorize', (requiredRole) => {
+      const user = c.get('user')
+      const roleHierarchy = { admin: 3, manager: 2, cashier: 1 }
+      const userLevel = roleHierarchy[user.role] || 0
+      const requiredLevel = roleHierarchy[requiredRole] || 0
+      
+      return userLevel >= requiredLevel
+    })
+    
+    await next()
+  } catch (error) {
+    console.error('Auth middleware error:', error)
+    return c.json({
+      error: 'Authentication Error',
+      message: 'Failed to authenticate request',
+      code: 'AUTH_ERROR'
+    }, 500)
+  }
+}
+
+// ================================
+// OPTIONAL AUTH MIDDLEWARE
+// ================================
+export async function optionalAuthMiddleware(c, next) {
+  try {
+    let token = c.req.header('Authorization')?.replace('Bearer ', '')
+    
+    if (!token) {
+      token = getCookie(c, 'access_token')
+    }
+    
+    if (token) {
+      const payload = await verifyToken(token, c.env)
+      if (payload) {
+        c.set('user', {
+          id: payload.sub,
+          email: payload.email,
+          name: payload.name,
+          role: payload.role,
+          tokenId: payload.jti
+        })
+      }
+    }
+    
+    await next()
+  } catch (error) {
+    console.error('Optional auth middleware error:', error)
+    await next()
+  }
+}
+
+// ================================
+// ROLE-BASED ACCESS CONTROL
+// ================================
+export function requireRole(role) {
+  return async (c, next) => {
+    const authorize = c.get('authorize')
+    
+    if (!authorize || !authorize(role)) {
+      return c.json({
+        error: 'Forbidden',
+        message: `Requires ${role} role or higher`,
+        code: 'INSUFFICIENT_PERMISSIONS'
+      }, 403)
+    }
+    
+    await next()
+  }
+}
+
+// ================================
+// UTILITIES
+// ================================
+export function setAuthCookies(c, accessToken, refreshToken) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: c.env?.ENVIRONMENT === 'production',
+    sameSite: 'strict',
+    path: '/'
+  }
+  
+  setCookie(c, 'access_token', accessToken, {
+    ...cookieOptions,
+    maxAge: 24 * 60 * 60 // 24 hours
+  })
+  
+  setCookie(c, 'refresh_token', refreshToken, {
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 // 7 days
+  })
+}
+
+export function clearAuthCookies(c) {
+  deleteCookie(c, 'access_token')
+  deleteCookie(c, 'refresh_token')
+}
+
+// ================================
+// EXPORTS
+// ================================
+export {
+  UserService,
+  SessionService,
+  generateTokens,
+  verifyToken,
+  loginSchema,
+  userSchema
 } 
