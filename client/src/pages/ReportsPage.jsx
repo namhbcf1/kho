@@ -6,7 +6,7 @@ import {
   Calendar, Download, Filter, BarChart3,
   PieChart as PieChartIcon, LineChart as LineChartIcon,
   ArrowUpRight, ArrowDownRight, Users, AlertCircle,
-  FileSpreadsheet, Printer, RefreshCw
+  FileSpreadsheet, Printer, RefreshCw, Grid3X3
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
