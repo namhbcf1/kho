@@ -59,7 +59,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { api } from '@/services/api';
-import { ReceiptPrinter } from '@/components/ReceiptPrinter';
+import ReceiptPrinter from '@/components/ReceiptPrinter';
 import { exportToExcel } from '@/utils/export';
 
 // Custom hooks

@@ -42,9 +42,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { api } from '@/services/api';
-import { BarcodeScanner } from '@/components/BarcodeScanner';
-import { NumberPad } from '@/components/NumberPad';
-import { ReceiptPrinter } from '@/components/ReceiptPrinter';
+import BarcodeScanner from '@/components/BarcodeScanner';
+import NumberPad from '@/components/NumberPad';
+import ReceiptPrinter from '@/components/ReceiptPrinter';
 
 // Schema validation
 const customerSchema = z.object({

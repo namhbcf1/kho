@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Brain, TrendingUp, Users, ShoppingCart, AlertTriangle,
-  Target, Zap, BarChart3, PieChart, Activity, 
-  Lightbulb, Robot, Sparkles, ArrowUpRight, ArrowDownRight,
+  Target, Zap, BarChart3, Activity, 
+  Lightbulb, Bot, Sparkles, ArrowUpRight, ArrowDownRight,
   Bell, Clock, DollarSign, Package, Star, ChevronRight
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -450,7 +450,7 @@ export default function AIDashboard({ className }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Robot className="h-6 w-6 text-blue-600" />
+            <Bot className="h-6 w-6 text-blue-600" />
             AI Dashboard
           </h2>
           <p className="text-muted-foreground">
