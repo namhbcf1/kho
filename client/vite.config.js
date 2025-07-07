@@ -15,9 +15,9 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8787',
+        target: 'https://pos-backend.bangachieu2.workers.dev',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         configure: (proxy) => {
           proxy.on('error', (err, req, res) => {
             console.log('Proxy error:', err)

@@ -2,7 +2,7 @@ const { defineConfig } = require('cypress')
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: 'https://pos-frontend-e1q.pages.dev',
+    baseUrl: 'https://d0c23371.pos-frontend-fixed.pages.dev',
     viewportWidth: 1280,
     viewportHeight: 720,
     video: true,
@@ -78,7 +78,7 @@ module.exports = defineConfig({
     // Environment variables
     env: {
       // Add any environment variables here
-      baseUrl: 'https://pos-frontend-e1q.pages.dev',
+      baseUrl: 'https://d0c23371.pos-frontend-fixed.pages.dev',
       apiUrl: 'https://pos-backend.bangachieu2.workers.dev'
     }
   }

@@ -22,9 +22,8 @@
   "author": "POS Team",
   "license": "MIT",
   "devDependencies": {
-    "cypress": "^13.6.0",
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
-  },
-  "dependencies": {}
+    "@types/node": "^20.0.0",
+    "cypress": "^13.17.0",
+    "typescript": "^5.0.0"
+  }
 }
