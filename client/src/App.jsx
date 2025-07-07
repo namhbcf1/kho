@@ -1,576 +1,920 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Toaster } from 'sonner';
-import { 
-  LayoutDashboard, Package, ShoppingCart, FileText, 
-  BarChart3, Users, Settings, LogOut, Menu, X,
-  Store, Bell, User, ChevronDown, Moon, Sun, Shield,
-  CreditCard, Trophy, Target, Brain
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { ThemeProvider, useTheme } from '@/hooks/use-theme';
-import { AuthProvider, useAuth, ROLES, PERMISSIONS } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+// =====================================================
+// 🚀 MAIN APP & ROUTES CONFIGURATION
+// =====================================================
 
-// Import page components
-import Dashboard from '@/pages/Dashboard';
-import Orders from '@/pages/Orders';
-import POS from '@/pages/POS';
-import Products from '@/pages/Products';
-import ReportsPage from '@/pages/ReportsPage';
-import AIDashboard from '@/components/AIDashboard';
-import Login from '@/components/Login';
+// App.jsx - Root component
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ConfigProvider } from 'antd';
+import viVN from 'antd/locale/vi_VN';
+import { AuthProvider } from './auth/AuthContext';
+import ProtectedRoute from './auth/ProtectedRoute';
+import { AdminLayout, CashierLayout, StaffLayout } from './components/common/Layout';
+import { ROLES, PERMISSIONS } from './auth/permissions';
 
-// Create QueryClient
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
-    },
-  },
-});
+// Import pages
+import LoginPage from './pages/auth/LoginPage';
+import UnauthorizedPage from './pages/auth/UnauthorizedPage';
 
-// Role-based navigation configuration
-const getNavigationItems = (userRole, hasPermission) => {
-  const baseItems = [
-    {
-      title: 'Tổng quan',
-      icon: LayoutDashboard,
-      path: '/dashboard',
-      permission: null, // All authenticated users can see dashboard
-      roles: [ROLES.ADMIN, ROLES.CASHIER, ROLES.STAFF]
-    }
-  ];
+// Admin pages
+import AnalyticsDashboard from './pages/admin/Dashboard/AnalyticsDashboard';
+import ProductManagement from './pages/admin/Products/ProductManagement';
+import PriceOptimization from './pages/admin/Products/PriceOptimization';
+import InventoryDashboard from './pages/admin/Inventory/InventoryDashboard';
+import DemandForecasting from './pages/admin/Inventory/DemandForecasting';
+import OrderManagement from './pages/admin/Orders/OrderManagement';
+import StaffManagement from './pages/admin/Staff/StaffManagement';
+import GamificationConfig from './pages/admin/Staff/GamificationConfig';
+import CustomerManagement from './pages/admin/Customers/CustomerManagement';
+import EcommerceChannels from './pages/admin/Integrations/EcommerceChannels';
+import SystemSettings from './pages/admin/Settings/SystemSettings';
 
-  const adminItems = [
-    {
-      title: 'Điểm bán hàng',
-      icon: ShoppingCart,
-      path: '/pos',
-      permission: PERMISSIONS.CREATE_ORDER,
-      roles: [ROLES.ADMIN, ROLES.CASHIER]
-    },
-    {
-      title: 'Sản phẩm',
-      icon: Package,
-      path: '/products',
-      permission: PERMISSIONS.VIEW_PRODUCTS,
-      roles: [ROLES.ADMIN, ROLES.CASHIER, ROLES.STAFF]
-    },
-    {
-      title: 'Đơn hàng',
-      icon: FileText,
-      path: '/orders',
-      permission: PERMISSIONS.VIEW_ALL_ORDERS,
-      roles: [ROLES.ADMIN]
-    },
-    {
-      title: 'AI Dashboard',
-      icon: Brain,
-      path: '/ai-dashboard',
-      permission: PERMISSIONS.VIEW_BI_DASHBOARD,
-      roles: [ROLES.ADMIN]
-    },
-    {
-      title: 'Báo cáo',
-      icon: BarChart3,
-      path: '/reports',
-      permission: PERMISSIONS.VIEW_BI_DASHBOARD,
-      roles: [ROLES.ADMIN]
-    },
-    {
-      title: 'Người dùng',
-      icon: Users,
-      path: '/users',
-      permission: PERMISSIONS.MANAGE_USERS,
-      roles: [ROLES.ADMIN]
-    }
-  ];
+// Cashier pages
+import POSTerminal from './pages/cashier/POS/POSTerminal';
+import OrderHistory from './pages/cashier/Orders/OrderHistory';
+import ShiftStart from './pages/cashier/Session/ShiftStart';
 
-  const cashierItems = [
-    {
-      title: 'Điểm bán hàng',
-      icon: ShoppingCart,
-      path: '/pos',
-      permission: PERMISSIONS.CREATE_ORDER,
-      roles: [ROLES.CASHIER]
-    },
-    {
-      title: 'Đơn hàng ca',
-      icon: FileText,
-      path: '/orders',
-      permission: PERMISSIONS.VIEW_SHIFT_ORDERS,
-      roles: [ROLES.CASHIER]
-    }
-  ];
+// Staff pages
+import PersonalDashboard from './pages/staff/Dashboard/PersonalDashboard';
+import Leaderboard from './pages/staff/Gamification/Leaderboard';
+import ChallengeHub from './pages/staff/Gamification/ChallengeHub';
+import RewardStore from './pages/staff/Gamification/RewardStore';
 
-  const staffItems = [
-    {
-      title: 'Bảng xếp hạng',
-      icon: Trophy,
-      path: '/leaderboard',
-      permission: PERMISSIONS.VIEW_LEADERBOARD,
-      roles: [ROLES.STAFF]
-    },
-    {
-      title: 'Hiệu suất',
-      icon: Target,
-      path: '/performance',
-      permission: PERMISSIONS.VIEW_OWN_PERFORMANCE,
-      roles: [ROLES.STAFF]
-    },
-    {
-      title: 'Đơn hàng',
-      icon: FileText,
-      path: '/orders',
-      permission: PERMISSIONS.VIEW_OWN_ORDERS,
-      roles: [ROLES.STAFF]
-    }
-  ];
+import './styles/globals.css';
 
-  let items = [...baseItems];
+const App = () => {
+  return (
+    <ConfigProvider locale={viVN}>
+      <AuthProvider>
+        <Router>
+          <div className="app">
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              
+              {/* Admin routes */}
+              <Route
+                path="/admin/*"
+                element={
+                  <ProtectedRoute requiredRole={ROLES.ADMIN}>
+                    <AdminLayout>
+                      <Routes>
+                        <Route index element={<Navigate to="dashboard" replace />} />
+                        <Route path="dashboard" element={<AnalyticsDashboard />} />
+                        
+                        {/* Products */}
+                        <Route path="products/list" element={<ProductManagement />} />
+                        <Route path="products/price-optimization" element={<PriceOptimization />} />
+                        
+                        {/* Inventory */}
+                        <Route path="inventory/dashboard" element={<InventoryDashboard />} />
+                        <Route path="inventory/forecasting" element={<DemandForecasting />} />
+                        
+                        {/* Orders */}
+                        <Route path="orders" element={<OrderManagement />} />
+                        
+                        {/* Staff */}
+                        <Route path="staff/management" element={<StaffManagement />} />
+                        <Route path="staff/gamification" element={<GamificationConfig />} />
+                        
+                        {/* Customers */}
+                        <Route path="customers" element={<CustomerManagement />} />
+                        
+                        {/* Integrations */}
+                        <Route path="integrations/ecommerce" element={<EcommerceChannels />} />
+                        
+                        {/* Settings */}
+                        <Route path="settings" element={<SystemSettings />} />
+                      </Routes>
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
 
-  if (userRole === ROLES.ADMIN) {
-    items = [...items, ...adminItems];
-  } else if (userRole === ROLES.CASHIER) {
-    items = [...items, ...cashierItems];
-  } else if (userRole === ROLES.STAFF) {
-    items = [...items, ...staffItems];
-  }
+              {/* Cashier routes */}
+              <Route
+                path="/cashier/*"
+                element={
+                  <ProtectedRoute requiredRole={ROLES.CASHIER}>
+                    <CashierLayout>
+                      <Routes>
+                        <Route index element={<Navigate to="pos" replace />} />
+                        <Route path="pos" element={<POSTerminal />} />
+                        <Route path="orders" element={<OrderHistory />} />
+                        <Route path="session/start" element={<ShiftStart />} />
+                      </Routes>
+                    </CashierLayout>
+                  </ProtectedRoute>
+                }
+              />
 
-  // Filter items based on permissions and roles
-  return items.filter(item => {
-    if (!item.roles.includes(userRole)) return false;
-    if (item.permission && !hasPermission(item.permission)) return false;
-    return true;
-  });
+              {/* Staff routes */}
+              <Route
+                path="/staff/*"
+                element={
+                  <ProtectedRoute requiredRole={ROLES.STAFF}>
+                    <StaffLayout>
+                      <Routes>
+                        <Route index element={<Navigate to="dashboard" replace />} />
+                        <Route path="dashboard" element={<PersonalDashboard />} />
+                        <Route path="gamification/leaderboard" element={<Leaderboard />} />
+                        <Route path="gamification/challenges" element={<ChallengeHub />} />
+                        <Route path="gamification/rewards" element={<RewardStore />} />
+                      </Routes>
+                    </StaffLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Default redirects */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <RoleBasedRedirect />
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* 404 */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </ConfigProvider>
+  );
 };
 
-// Protected Route Component
-const ProtectedRoute = ({ children, permission, roles }) => {
-  const { user, hasPermission, isAuthenticated } = useAuth();
+// Component để redirect theo role
+const RoleBasedRedirect = () => {
+  const { user } = useAuth();
   
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  
+  switch (user.role) {
+    case ROLES.ADMIN:
+      return <Navigate to="/admin/dashboard" replace />;
+    case ROLES.CASHIER:
+      return <Navigate to="/cashier/pos" replace />;
+    case ROLES.STAFF:
+      return <Navigate to="/staff/dashboard" replace />;
+    default:
+      return <Navigate to="/unauthorized" replace />;
   }
-  
-  if (roles && !roles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  
-  if (permission && !hasPermission(permission)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  
-  return children;
 };
 
-// Main Layout Component
-const Layout = ({ children }) => {
-  const { user, logout, hasPermission, getRoleDisplayName, getPerformanceData } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export default App;
+
+// pages/auth/LoginPage.jsx - Trang đăng nhập
+import React, { useState } from 'react';
+import { Card, Form, Input, Button, Select, message, Row, Col } from 'antd';
+import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
+import { useAuth } from '../../auth/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+const { Option } = Select;
+
+const LoginPage = () => {
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const navigationItems = getNavigationItems(user?.role, hasPermission);
-  const performanceData = getPerformanceData();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const getRoleIcon = (role) => {
-    switch (role) {
-      case ROLES.ADMIN:
-        return Shield;
-      case ROLES.CASHIER:
-        return CreditCard;
-      case ROLES.STAFF:
-        return Users;
-      default:
-        return User;
+  const onFinish = async (values) => {
+    setLoading(true);
+    
+    try {
+      const result = await login(values);
+      
+      if (result.success) {
+        message.success('Đăng nhập thành công!');
+        // Navigation sẽ được xử lý tự động bởi RoleBasedRedirect
+      } else {
+        message.error(result.message || 'Đăng nhập thất bại');
+      }
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi đăng nhập');
     }
+    
+    setLoading(false);
   };
 
-  const RoleIcon = getRoleIcon(user?.role);
+  // Demo accounts
+  const demoAccounts = [
+    { username: 'admin', password: 'admin123', role: 'admin', name: 'Quản trị viên' },
+    { username: 'cashier', password: 'cashier123', role: 'cashier', name: 'Thu ngân' },
+    { username: 'staff', password: 'staff123', role: 'staff', name: 'Nhân viên bán hàng' }
+  ];
+
+  const fillDemoAccount = (account) => {
+    form.setFieldsValue({
+      username: account.username,
+      password: account.password
+    });
+  };
+
+  const [form] = Form.useForm();
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center gap-2 h-16 px-6 border-b">
-            <Store className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="font-bold text-lg">POS System</h1>
-              <p className="text-xs text-muted-foreground">Thông minh & Hiện đại</p>
-            </div>
-          </div>
-
-          {/* User Info */}
-          <div className="p-4 border-b">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback>
-                  <RoleIcon className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{user?.name}</p>
-                <div className="flex items-center gap-1">
-                  <Badge variant="secondary" className="text-xs">
-                    {getRoleDisplayName(user?.role)}
-                  </Badge>
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-700 flex items-center justify-center px-4">
+      <div className="max-w-4xl w-full">
+        <Row gutter={[32, 32]} align="middle">
+          {/* Left side - Branding */}
+          <Col xs={24} lg={12}>
+            <div className="text-center text-white space-y-6">
+              <div className="space-y-4">
+                <h1 className="text-5xl font-bold">🚀 Smart POS</h1>
+                <h2 className="text-2xl font-light">Hệ thống Bán hàng Thông minh</h2>
+                <p className="text-xl text-blue-100">
+                  Thế hệ mới với AI, Game hóa & Unified Commerce
+                </p>
               </div>
-            </div>
-            
-            {/* Staff Performance Widget */}
-            {user?.role === ROLES.STAFF && performanceData && (
-              <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Tiến độ tháng</span>
-                  <span className="text-sm text-muted-foreground">
-                    #{performanceData.rank}/{performanceData.totalStaff}
-                  </span>
-                </div>
-                <Progress value={performanceData.monthlyProgress} className="h-2 mb-2" />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{(performanceData.currentSales / 1000000).toFixed(1)}M</span>
-                  <span>{(performanceData.targetSales / 1000000).toFixed(0)}M</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            {navigationItems.map((item) => {
-              const IconComponent = item.icon;
-              const isActive = location.pathname === item.path;
               
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    navigate(item.path);
-                    setSidebarOpen(false);
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors",
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
-                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <IconComponent className="h-5 w-5" />
-                  <span className="font-medium">{item.title}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t">
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              <LogOut className="h-5 w-5 mr-3" />
-              Đăng xuất
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="lg:pl-64">
-        {/* Top Bar */}
-        <header className="h-16 bg-card border-b flex items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden"
-            >
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-            
-            <div>
-              <h2 className="font-semibold text-lg">
-                {navigationItems.find(item => item.path === location.pathname)?.title || 'Dashboard'}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {new Date().toLocaleDateString('vi-VN', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </p>
+              <div className="grid grid-cols-3 gap-4 mt-8">
+                <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+                  <div className="text-3xl mb-2">🤖</div>
+                  <div className="font-semibold">AI Dự báo</div>
+                  <div className="text-sm text-blue-100">Prophet & ARIMA</div>
+                </div>
+                <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+                  <div className="text-3xl mb-2">🎮</div>
+                  <div className="font-semibold">Game hóa</div>
+                  <div className="text-sm text-blue-100">Leaderboard & Rewards</div>
+                </div>
+                <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+                  <div className="text-3xl mb-2">🌐</div>
+                  <div className="font-semibold">Omnichannel</div>
+                  <div className="text-sm text-blue-100">Shopee, Lazada, Tiki</div>
+                </div>
+              </div>
             </div>
-          </div>
+          </Col>
 
-          <div className="flex items-center gap-2">
-            {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs"></span>
-            </Button>
+          {/* Right side - Login form */}
+          <Col xs={24} lg={12}>
+            <Card className="shadow-2xl border-0" style={{ borderRadius: '16px' }}>
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-gray-800">Đăng nhập</h3>
+                <p className="text-gray-600">Chào mừng bạn quay trở lại!</p>
+              </div>
 
-            {/* Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            >
-              {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-            </Button>
+              <Form
+                form={form}
+                name="login"
+                onFinish={onFinish}
+                layout="vertical"
+                size="large"
+              >
+                <Form.Item
+                  name="username"
+                  label="Tên đăng nhập"
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập tên đăng nhập!' }
+                  ]}
+                >
+                  <Input 
+                    prefix={<UserOutlined />} 
+                    placeholder="Nhập tên đăng nhập"
+                  />
+                </Form.Item>
 
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.avatar} />
-                    <AvatarFallback>
-                      <RoleIcon className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div>
-                    <p className="font-medium">{user?.name}</p>
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="h-4 w-4 mr-2" />
-                  Thông tin cá nhân
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Cài đặt
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Đăng xuất
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
+                <Form.Item
+                  name="password"
+                  label="Mật khẩu"
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập mật khẩu!' }
+                  ]}
+                >
+                  <Input.Password 
+                    prefix={<LockOutlined />} 
+                    placeholder="Nhập mật khẩu"
+                  />
+                </Form.Item>
 
-        {/* Page Content */}
-        <main className="p-4 lg:p-6">
-          {children}
-        </main>
+                <Form.Item>
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    className="w-full" 
+                    loading={loading}
+                    icon={<LoginOutlined />}
+                  >
+                    Đăng nhập
+                  </Button>
+                </Form.Item>
+              </Form>
+
+              {/* Demo accounts */}
+              <div className="mt-6">
+                <div className="text-center text-gray-500 mb-4">
+                  <span className="bg-white px-3">Tài khoản demo</span>
+                </div>
+                
+                <div className="space-y-2">
+                  {demoAccounts.map((account, index) => (
+                    <Button
+                      key={index}
+                      block
+                      size="small"
+                      type="default"
+                      onClick={() => fillDemoAccount(account)}
+                      className="text-left"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span>
+                          <strong>{account.name}</strong> - {account.username}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {account.role}
+                        </span>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 text-center text-sm text-gray-500">
+                <p>🔒 Hệ thống bảo mật PCI DSS</p>
+                <p>📱 Hỗ trợ PWA & Offline Mode</p>
+              </div>
+            </Card>
+          </Col>
+        </Row>
       </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 };
 
-// Staff Portal Components (Placeholder)
-const StaffLeaderboard = () => (
-  <div className="space-y-6">
-    <h1 className="text-3xl font-bold">Bảng xếp hạng</h1>
-    <p className="text-muted-foreground">Xếp hạng nhân viên bán hàng xuất sắc</p>
-    {/* Implementation will be added later */}
-  </div>
-);
+export default LoginPage;
 
-const StaffPerformance = () => (
-  <div className="space-y-6">
-    <h1 className="text-3xl font-bold">Hiệu suất cá nhân</h1>
-    <p className="text-muted-foreground">Theo dõi thành tích và hoa hồng của bạn</p>
-    {/* Implementation will be added later */}
-  </div>
-);
+// pages/auth/UnauthorizedPage.jsx - Trang không có quyền
+import React from 'react';
+import { Result, Button } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
 
-// Main App Component
-const AppContent = () => {
-  const { isAuthenticated, loading } = useAuth();
+const UnauthorizedPage = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Đang tải...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Login onLoginSuccess={() => window.location.reload()} />;
-  }
+  const handleBackHome = () => {
+    if (user) {
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'cashier':
+          navigate('/cashier/pos');
+          break;
+        case 'staff':
+          navigate('/staff/dashboard');
+          break;
+        default:
+          navigate('/login');
+      }
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-        
-        {/* Dashboard - All roles */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* POS - Admin & Cashier only */}
-        <Route 
-          path="/pos" 
-          element={
-            <ProtectedRoute 
-              permission={PERMISSIONS.CREATE_ORDER}
-              roles={[ROLES.ADMIN, ROLES.CASHIER]}
-            >
-              <POS />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Products - All roles (different views) */}
-        <Route 
-          path="/products" 
-          element={
-            <ProtectedRoute permission={PERMISSIONS.VIEW_PRODUCTS}>
-              <Products />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Orders - Role-based views */}
-        <Route 
-          path="/orders" 
-          element={
-            <ProtectedRoute>
-              <Orders />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* AI Dashboard - Admin only */}
-        <Route 
-          path="/ai-dashboard" 
-          element={
-            <ProtectedRoute 
-              permission={PERMISSIONS.VIEW_BI_DASHBOARD}
-              roles={[ROLES.ADMIN]}
-            >
-              <AIDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Reports - Admin only */}
-        <Route 
-          path="/reports" 
-          element={
-            <ProtectedRoute 
-              permission={PERMISSIONS.VIEW_BI_DASHBOARD}
-              roles={[ROLES.ADMIN]}
-            >
-              <ReportsPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Staff Portal */}
-        <Route 
-          path="/leaderboard" 
-          element={
-            <ProtectedRoute 
-              permission={PERMISSIONS.VIEW_LEADERBOARD}
-              roles={[ROLES.STAFF]}
-            >
-              <StaffLeaderboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/performance" 
-          element={
-            <ProtectedRoute 
-              permission={PERMISSIONS.VIEW_OWN_PERFORMANCE}
-              roles={[ROLES.STAFF]}
-            >
-              <StaffPerformance />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </Layout>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Result
+        status="403"
+        title="403"
+        subTitle="Xin lỗi, bạn không có quyền truy cập trang này."
+        extra={
+          <div className="space-x-4">
+            <Button type="primary" onClick={handleBackHome}>
+              Về trang chủ
+            </Button>
+            <Button onClick={logout}>
+              Đăng xuất
+            </Button>
+          </div>
+        }
+      />
+    </div>
   );
 };
 
-// Root App Component
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <Router>
-            <div className="App">
-              <AppContent />
-              <Toaster 
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                }}
-              />
-              <ReactQueryDevtools initialIsOpen={false} />
-            </div>
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  );
+export default UnauthorizedPage;
+
+// index.js - Entry point
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './styles/globals.css';
+
+// Import useAuth for RoleBasedRedirect
+import { useAuth } from './auth/AuthContext';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// styles/globals.css - Global styles
+@import '~antd/dist/reset.css';
+
+/* Custom variables */
+:root {
+  --primary-color: #1890ff;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #ff4d4f;
+  --text-color: #000000d9;
+  --text-color-secondary: #00000073;
+  --border-color: #d9d9d9;
+  --background-color: #ffffff;
 }
 
-export default App;
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
+               'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5715;
+  color: var(--text-color);
+  background-color: #f0f2f5;
+}
+
+#root {
+  height: 100%;
+}
+
+.app {
+  height: 100%;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Layout specific styles */
+.admin-sidebar .ant-menu-item-selected {
+  background-color: #1890ff !important;
+}
+
+.cashier-layout .ant-layout-header {
+  position: fixed;
+  z-index: 1000;
+  width: 100%;
+  top: 0;
+}
+
+.cashier-layout .ant-layout-content {
+  margin-top: 64px;
+}
+
+.staff-layout .ant-layout-sider {
+  position: fixed;
+  left: 0;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.staff-layout .ant-layout-content {
+  margin-left: 250px;
+}
+
+/* Component specific styles */
+.pos-terminal .product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.inventory-table .ant-table-row:hover {
+  background-color: #f5f5f5;
+}
+
+.challenge-card:hover {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+}
+
+.reward-card .ant-card-cover {
+  overflow: hidden;
+}
+
+.reward-card:hover .ant-card-cover img {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+/* Utility classes */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .staff-layout .ant-layout-sider {
+    position: relative;
+    margin-left: 0;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+  
+  .staff-layout .ant-layout-content {
+    margin-left: 0;
+  }
+  
+  .pos-terminal .ant-col {
+    margin-bottom: 16px;
+  }
+}
+
+/* Dark mode support (future enhancement) */
+@media (prefers-color-scheme: dark) {
+  /* Will be implemented in future versions */
+}
+
+/* Print styles */
+@media print {
+  .ant-layout-sider,
+  .ant-layout-header,
+  .ant-btn,
+  .ant-pagination {
+    display: none !important;
+  }
+  
+  .ant-layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .ant-btn-primary {
+    border: 2px solid #000;
+  }
+  
+  .ant-card {
+    border: 1px solid #000;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// services/api/index.js - API configuration
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8787/api';
+
+class ApiService {
+  constructor() {
+    this.baseURL = API_BASE_URL;
+  }
+
+  async request(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    const token = localStorage.getItem('pos_token');
+    
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired, redirect to login
+          localStorage.removeItem('pos_token');
+          localStorage.removeItem('pos_user');
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
+  }
+
+  // Auth endpoints
+  async login(credentials) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async logout() {
+    return this.request('/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  // Products endpoints
+  async getProducts(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/products?${queryString}`);
+  }
+
+  async createProduct(product) {
+    return this.request('/products', {
+      method: 'POST',
+      body: JSON.stringify(product),
+    });
+  }
+
+  async updateProduct(id, product) {
+    return this.request(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(product),
+    });
+  }
+
+  async deleteProduct(id) {
+    return this.request(`/products/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Orders endpoints
+  async getOrders(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/orders?${queryString}`);
+  }
+
+  async createOrder(order) {
+    return this.request('/orders', {
+      method: 'POST',
+      body: JSON.stringify(order),
+    });
+  }
+
+  async getOrderById(id) {
+    return this.request(`/orders/${id}`);
+  }
+
+  // Inventory endpoints
+  async getInventory(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/inventory?${queryString}`);
+  }
+
+  async updateInventory(updates) {
+    return this.request('/inventory/update', {
+      method: 'POST',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  // Customers endpoints
+  async getCustomers(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/customers?${queryString}`);
+  }
+
+  async createCustomer(customer) {
+    return this.request('/customers', {
+      method: 'POST',
+      body: JSON.stringify(customer),
+    });
+  }
+
+  // Staff endpoints
+  async getStaff(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/staff?${queryString}`);
+  }
+
+  async getStaffPerformance(staffId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/staff/${staffId}/performance?${queryString}`);
+  }
+
+  // Analytics endpoints
+  async getAnalytics(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/analytics?${queryString}`);
+  }
+
+  async getDashboardData(role, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/analytics/dashboard/${role}?${queryString}`);
+  }
+
+  // Gamification endpoints
+  async getLeaderboard(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/gamification/leaderboard?${queryString}`);
+  }
+
+  async getChallenges(staffId = null) {
+    const endpoint = staffId ? `/gamification/challenges/${staffId}` : '/gamification/challenges';
+    return this.request(endpoint);
+  }
+
+  async joinChallenge(challengeId, staffId) {
+    return this.request(`/gamification/challenges/${challengeId}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ staffId }),
+    });
+  }
+
+  async getRewards(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/gamification/rewards?${queryString}`);
+  }
+
+  async redeemReward(rewardId, staffId) {
+    return this.request('/gamification/rewards/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ rewardId, staffId }),
+    });
+  }
+
+  // Integration endpoints
+  async getIntegrations() {
+    return this.request('/integrations');
+  }
+
+  async updateIntegration(integrationId, config) {
+    return this.request(`/integrations/${integrationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
+  }
+
+  async syncChannel(channelId) {
+    return this.request(`/integrations/${channelId}/sync`, {
+      method: 'POST',
+    });
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService;
+
+// utils/constants/index.js - App constants
+export const APP_CONFIG = {
+  name: 'Smart POS',
+  version: '1.0.0',
+  description: 'Hệ thống Bán hàng Thông minh với AI & Game hóa',
+  company: 'Smart Retail Solutions',
+  supportEmail: 'support@smartpos.vn',
+  supportPhone: '1900-xxx-xxx'
+};
+
+export const ROUTES = {
+  LOGIN: '/login',
+  UNAUTHORIZED: '/unauthorized',
+  
+  // Admin routes
+  ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_PRODUCTS: '/admin/products/list',
+  ADMIN_INVENTORY: '/admin/inventory/dashboard',
+  ADMIN_ORDERS: '/admin/orders',
+  ADMIN_STAFF: '/admin/staff/management',
+  ADMIN_CUSTOMERS: '/admin/customers',
+  ADMIN_INTEGRATIONS: '/admin/integrations/ecommerce',
+  ADMIN_SETTINGS: '/admin/settings',
+  
+  // Cashier routes
+  CASHIER_POS: '/cashier/pos',
+  CASHIER_ORDERS: '/cashier/orders',
+  CASHIER_SESSION: '/cashier/session/start',
+  
+  // Staff routes
+  STAFF_DASHBOARD: '/staff/dashboard',
+  STAFF_LEADERBOARD: '/staff/gamification/leaderboard',
+  STAFF_CHALLENGES: '/staff/gamification/challenges',
+  STAFF_REWARDS: '/staff/gamification/rewards'
+};
+
+export const CURRENCY = {
+  CODE: 'VND',
+  SYMBOL: '₫',
+  LOCALE: 'vi-VN'
+};
+
+export const DATE_FORMATS = {
+  SHORT: 'DD/MM/YYYY',
+  LONG: 'DD/MM/YYYY HH:mm:ss',
+  TIME: 'HH:mm:ss'
+};
+
+export const PAGINATION = {
+  DEFAULT_PAGE_SIZE: 20,
+  PAGE_SIZE_OPTIONS: ['10', '20', '50', '100']
+};
+
+export const SYNC_INTERVALS = {
+  REALTIME: 'realtime',
+  FIVE_MIN: '5min',
+  FIFTEEN_MIN: '15min',
+  THIRTY_MIN: '30min',
+  ONE_HOUR: '1hour'
+};
+
+export const ECOMMERCE_PLATFORMS = {
+  SHOPEE: 'shopee',
+  LAZADA: 'lazada',
+  TIKI: 'tiki',
+  TIKTOK_SHOP: 'tiktok_shop'
+};
+
+export default {
+  APP_CONFIG,
+  ROUTES,
+  CURRENCY,
+  DATE_FORMATS,
+  PAGINATION,
+  SYNC_INTERVALS,
+  ECOMMERCE_PLATFORMS
+};
