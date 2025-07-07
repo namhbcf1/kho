@@ -1,179 +1,156 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Space, Divider, Alert } from 'antd';
-import { UserOutlined, LockOutlined, LoginOutlined, RobotOutlined } from '@ant-design/icons';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useEffect } from 'react'
+import { Form, Input, Button, Card, Typography, Space, Row, Col } from 'antd'
+import { UserOutlined, LockOutlined, ShopOutlined } from '@ant-design/icons'
+import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
-const { Title, Text } = Typography;
+const { Title, Text } = Typography
 
-const LoginForm = ({ onSuccess }) => {
-  const [form] = Form.useForm();
-  const { login, loading } = useAuth();
-  const [error, setError] = useState(null);
+export default function LoginForm() {
+  const [form] = Form.useForm()
+  const navigate = useNavigate()
+  const { user, login, loading } = useAuth()
 
-  const handleSubmit = async (values) => {
-    setError(null);
-    
-    const result = await login(values);
-    
-    if (result.success) {
-      if (onSuccess) {
-        onSuccess();
-      }
-    } else {
-      setError(result.error);
-    }
-  };
+  useEffect(() => {
+    if (user) navigate('/dashboard', { replace: true })
+  }, [user, navigate])
 
-  const handleDemoLogin = async () => {
-    setError(null);
-    
-    const demoCredentials = {
-      username: 'admin',
-      password: 'admin123'
-    };
-    
-    const result = await login(demoCredentials);
-    
-    if (result.success) {
-      if (onSuccess) {
-        onSuccess();
-      }
-    } else {
-      setError(result.error);
-    }
-  };
+  const onFinish = async (values) => {
+    const result = await login(values.email, values.password)
+    if (result.success) navigate('/dashboard', { replace: true })
+  }
+
+  const fillDemo = (type) => {
+    form.setFieldsValue({
+      email: type === 'admin' ? 'admin@pos.com' : 'cashier@pos.com',
+      password: type === 'admin' ? 'admin123' : 'cashier123'
+    })
+  }
 
   return (
     <div style={{ 
       minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       padding: '20px'
     }}>
-      <Card 
-        style={{ 
-          width: '100%', 
-          maxWidth: 400,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-          borderRadius: '16px',
-          border: 'none'
-        }}
-        bodyStyle={{ padding: '40px 32px' }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <RobotOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
-          <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
-            Smart POS System
+      <Card style={{ 
+        width: '100%',
+        maxWidth: 450, 
+        borderRadius: '20px',
+        border: 'none',
+        overflow: 'hidden',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+      }}>
+        {/* Header */}
+        <div style={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '40px 32px',
+          textAlign: 'center',
+          color: 'white',
+          margin: '-24px -24px 24px -24px'
+        }}>
+          <ShopOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+          <Title level={2} style={{ margin: 0, color: 'white' }}>
+            POS System
           </Title>
-          <Text type="secondary">
-            Đăng nhập để sử dụng hệ thống
+          <Text style={{ color: 'rgba(255,255,255,0.9)' }}>
+            Hệ thống quản lý bán hàng
           </Text>
         </div>
 
-        {error && (
-          <Alert
-            message="Đăng nhập thất bại"
-            description={error}
-            type="error"
-            showIcon
-            style={{ marginBottom: '24px' }}
-          />
-        )}
-
-        <Form
-          form={form}
-          name="login"
-          onFinish={handleSubmit}
-          layout="vertical"
-          size="large"
-        >
+        {/* Form */}
+        <Form form={form} onFinish={onFinish} layout="vertical" size="large">
           <Form.Item
-            name="username"
-            label="Tên đăng nhập"
+            label="Email"
+            name="email"
             rules={[
-              { required: true, message: 'Vui lòng nhập tên đăng nhập!' },
-              { min: 3, message: 'Tên đăng nhập phải có ít nhất 3 ký tự!' }
+              { required: true, message: 'Vui lòng nhập email!' },
+              { type: 'email', message: 'Email không hợp lệ!' }
             ]}
           >
-            <Input
+            <Input 
               prefix={<UserOutlined />}
-              placeholder="Nhập tên đăng nhập"
-              autoComplete="username"
+              placeholder="Nhập email"
+              style={{ borderRadius: '10px', height: '48px' }}
             />
           </Form.Item>
 
           <Form.Item
-            name="password"
             label="Mật khẩu"
-            rules={[
-              { required: true, message: 'Vui lòng nhập mật khẩu!' },
-              { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-            ]}
+            name="password"
+            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="Nhập mật khẩu"
-              autoComplete="current-password"
+              style={{ borderRadius: '10px', height: '48px' }}
             />
           </Form.Item>
 
-          <Form.Item style={{ marginBottom: '16px' }}>
-            <Button
-              type="primary"
-              htmlType="submit"
+          <Form.Item>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
               loading={loading}
-              icon={<LoginOutlined />}
               block
-              style={{ 
+              style={{
                 height: '48px',
-                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '10px',
                 fontSize: '16px',
-                fontWeight: '500'
+                fontWeight: '600'
               }}
             >
-              Đăng nhập
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </Button>
           </Form.Item>
         </Form>
 
-        <Divider>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            Hoặc
-          </Text>
-        </Divider>
-
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Button
-            type="default"
-            onClick={handleDemoLogin}
-            loading={loading}
-            block
-            style={{ 
-              height: '40px',
-              borderRadius: '8px',
-              borderStyle: 'dashed'
-            }}
-          >
-            🚀 Dùng thử với tài khoản Demo
-          </Button>
-          
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Demo: admin / admin123
-            </Text>
-          </div>
-        </Space>
-
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            Smart POS System 2025 - Phiên bản bảo mật
-          </Text>
+        {/* Demo Accounts */}
+        <div style={{ marginTop: '24px' }}>
+          <Text type="secondary">Tài khoản demo:</Text>
+          <Row gutter={12} style={{ marginTop: '12px' }}>
+            <Col span={12}>
+              <Button
+                onClick={() => fillDemo('admin')}
+                style={{ 
+                  width: '100%', 
+                  height: '60px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Text strong style={{ fontSize: '12px' }}>Admin</Text>
+                <Text type="secondary" style={{ fontSize: '10px' }}>admin@pos.com</Text>
+              </Button>
+            </Col>
+            <Col span={12}>
+              <Button
+                onClick={() => fillDemo('cashier')}
+                style={{ 
+                  width: '100%', 
+                  height: '60px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Text strong style={{ fontSize: '12px' }}>Cashier</Text>
+                <Text type="secondary" style={{ fontSize: '10px' }}>cashier@pos.com</Text>
+              </Button>
+            </Col>
+          </Row>
         </div>
       </Card>
     </div>
-  );
-};
-
-export default LoginForm; 
+  )
+} 

@@ -1,13 +1,13 @@
-name = "pos-backend-modern"
+name = "pos-backend"
 main = "src/index.js"
 compatibility_date = "2024-01-15"
 compatibility_flags = ["nodejs_compat"]
 
 [env.production]
-name = "pos-backend-modern-prod"
+name = "pos-backend-prod"
 
 [env.staging]
-name = "pos-backend-modern-staging"
+name = "pos-backend-staging"
 
 [[d1_databases]]
 binding = "DB"
@@ -17,7 +17,7 @@ database_id = "5299f7e8-c458-4db4-9866-124c392a6dd8"
 [vars]
 ENVIRONMENT = "production"
 API_VERSION = "2.0.0"
-CORS_ORIGINS = "https://pos-system-production-2025.pages.dev,http://localhost:3000"
+CORS_ORIGINS = "https://pos-frontend-fixed.pages.dev,http://localhost:3000"
 
 # Secrets to be set via CLI:
 # wrangler secret put JWT_SECRET

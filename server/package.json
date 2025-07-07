@@ -1,57 +1,15 @@
 {
-  "name": "pos-backend-modern",
+  "name": "pos-backend",
   "version": "2.0.0",
-  "description": "Modern POS System Backend API with Hono + Cloudflare Workers",
-  "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev src/index.js --port 8787",
-    "build": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy src/index.js",
-    "deploy:staging": "wrangler deploy src/index.js --env staging",
-    "migrate": "wrangler d1 migrations apply pos-db",
-    "migrate:staging": "wrangler d1 migrations apply pos-db --env staging",
-    "db:studio": "wrangler d1 execute pos-db --command 'SELECT name FROM sqlite_master WHERE type=\"table\";'",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "lint": "eslint src --ext .js,.ts",
-    "lint:fix": "eslint src --ext .js,.ts --fix",
-    "format": "prettier --write \"src/**/*.{js,ts}\"",
-    "type-check": "tsc --noEmit",
-    "secrets:set": "wrangler secret put JWT_SECRET && wrangler secret put ADMIN_PASSWORD"
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy"
   },
-  "keywords": [
-    "pos",
-    "api",
-    "cloudflare",
-    "workers",
-    "hono",
-    "d1",
-    "modern",
-    "jwt",
-    "typescript"
-  ],
-  "author": "POS System Team",
-  "license": "MIT",
   "dependencies": {
-    "hono": "^4.8.0",
-    "zod": "^3.22.4",
-    "bcryptjs": "^2.4.3",
-    "uuid": "^9.0.1"
+    "hono": "^3.12.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231218.0",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/uuid": "^9.0.7",
-    "eslint": "^8.55.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.0.1",
-    "prettier": "^3.1.0",
-    "typescript": "^5.3.0",
-    "vitest": "^1.0.0",
-    "wrangler": "^3.22.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "wrangler": "^3.24.0"
   }
 }
