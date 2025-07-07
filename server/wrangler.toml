@@ -1,13 +1,13 @@
 name = "pos-backend"
 main = "src/index.js"
-compatibility_date = "2024-01-15"
+compatibility_date = "2023-12-01"
 compatibility_flags = ["nodejs_compat"]
 
 [env.production]
-name = "pos-backend-prod"
-
-[env.staging]
-name = "pos-backend-staging"
+name = "pos-backend"
+routes = [
+  { pattern = "pos-backend.bangachieu2.workers.dev/*", zone_name = "bangachieu2.workers.dev" }
+]
 
 [[d1_databases]]
 binding = "DB"
@@ -16,10 +16,8 @@ database_id = "5299f7e8-c458-4db4-9866-124c392a6dd8"
 
 [vars]
 ENVIRONMENT = "production"
-API_VERSION = "2.0.0"
-CORS_ORIGINS = "https://pos-frontend-fixed.pages.dev,http://localhost:3000"
+VERSION = "2.0.0"
+API_VERSION = "v1"
 
-# Secrets to be set via CLI:
-# wrangler secret put JWT_SECRET
-# wrangler secret put ADMIN_PASSWORD
-# wrangler secret put DATABASE_ENCRYPTION_KEY
+# To set secrets, use: wrangler secret put SECRET_NAME
+# Example: wrangler secret put JWT_SECRET
