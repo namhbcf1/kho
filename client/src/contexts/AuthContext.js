@@ -1,6 +1,41 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { message } from 'antd';
-import api from '../services/api';
+import axios from 'axios';
+
+// Configure API URL - Using working simple worker for now
+const API_URL = 'https://pos-test-simple.bangachieu2.workers.dev';
+axios.defaults.baseURL = API_URL;
+axios.defaults.withCredentials = true;
+
+// Add axios interceptor for better error handling
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    return Promise.reject(error);
+  }
+);
+
+// Add request interceptor for debugging
+axios.interceptors.request.use(
+  config => {
+    console.log('API Request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    });
+    return config;
+  },
+  error => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 const AuthContext = createContext();
 
@@ -19,10 +54,10 @@ export const AuthProvider = ({ children }) => {
 
   // Configure axios defaults
   useEffect(() => {
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (token && token !== 'undefined' && token !== 'null') {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
-      delete api.defaults.headers.common['Authorization'];
+      delete axios.defaults.headers.common['Authorization'];
     }
   }, [token]);
 
@@ -33,20 +68,25 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      if (!token) {
+      if (!token || token === 'undefined' || token === 'null') {
         setLoading(false);
         return;
       }
 
-      const response = await api.get('/auth/profile');
-      if (response.data && (response.data.user || response.data.data)) {
-        const userData = response.data.user || response.data.data;
+      // Set authorization header for check
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      const response = await axios.get('/api/auth/me');
+      
+      // Check if response and response.data exist
+      if (response && response.data && response.data.user) {
+        const userData = response.data.user;
         
         // Map field names
         const mappedUserData = {
           id: userData.id,
-          username: userData.username,
-          fullName: userData.fullName || userData.full_name,
+          username: userData.email,
+          fullName: userData.name || userData.fullName,
           email: userData.email,
           role: userData.role,
           permissions: userData.permissions
@@ -67,29 +107,40 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setLoading(true);
-      const response = await api.post('/auth/login', credentials);
       
-      if (response.data && response.data.success) {
-        const { token: newToken, user: userData, data: userDataAlt } = response.data;
+      // Use direct axios call for better control
+      const response = await axios.post('/api/auth/login', {
+        email: credentials.email || credentials.username,
+        password: credentials.password
+      });
+      
+      // Check if response exists and has data
+      if (response && response.data && response.data.success) {
+        const { token: newToken, user: userData, data: responseData } = response.data;
         
-        // Handle both formats: {user: ...} or {data: ...}
-        const finalUserData = userData || userDataAlt;
+        // Handle both formats: {user: ...} or {data: {token, user}}
+        const finalUserData = userData || responseData?.user;
+        const finalToken = newToken || responseData?.token;
         
-        // Map field names (backend uses full_name, frontend expects fullName)
+        if (!finalUserData) {
+          throw new Error('User data not found in response');
+        }
+        
+        // Map field names (backend uses name, frontend expects fullName)
         const mappedUserData = {
           id: finalUserData.id,
-          username: finalUserData.username,
-          fullName: finalUserData.fullName || finalUserData.full_name,
+          username: finalUserData.email,
+          fullName: finalUserData.name || finalUserData.fullName,
           email: finalUserData.email,
           role: finalUserData.role,
           permissions: finalUserData.permissions
         };
         
         // Store token if provided
-        if (newToken) {
-          localStorage.setItem('token', newToken);
-          setToken(newToken);
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        if (finalToken) {
+          localStorage.setItem('token', finalToken);
+          setToken(finalToken);
+          axios.defaults.headers.common['Authorization'] = `Bearer ${finalToken}`;
         }
         
         // Set user data
@@ -98,10 +149,12 @@ export const AuthProvider = ({ children }) => {
         message.success(`Chào mừng ${mappedUserData.fullName || mappedUserData.username}!`);
         return { success: true };
       } else {
-        throw new Error(response.data?.error || response.data?.message || 'Login failed');
+        const errorMsg = response?.data?.error || response?.data?.message || 'Login failed';
+        throw new Error(errorMsg);
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.error || error.message || 'Đăng nhập thất bại';
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Đăng nhập thất bại';
       message.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -112,8 +165,8 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       // Call logout API if token exists
-      if (token) {
-        await api.post('/auth/logout').catch(() => {
+      if (token && token !== 'undefined' && token !== 'null') {
+        await axios.post('/api/auth/logout').catch(() => {
           // Ignore logout API errors
         });
       }
@@ -124,7 +177,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
-      delete api.defaults.headers.common['Authorization'];
+      delete axios.defaults.headers.common['Authorization'];
       message.success('Đã đăng xuất thành công');
     }
   };
@@ -132,13 +185,13 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setLoading(true);
-      const response = await api.post('/auth/register', userData);
+      const response = await axios.post('/api/auth/register', userData);
       
-      if (response.data && response.data.success) {
+      if (response && response.data && response.data.success) {
         message.success('Tạo tài khoản thành công!');
         return { success: true };
       } else {
-        throw new Error(response.data?.error || 'Registration failed');
+        throw new Error(response?.data?.error || 'Registration failed');
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.message || 'Tạo tài khoản thất bại';
@@ -152,13 +205,13 @@ export const AuthProvider = ({ children }) => {
   const changePassword = async (passwordData) => {
     try {
       setLoading(true);
-      const response = await api.post('/auth/change-password', passwordData);
+      const response = await axios.post('/api/auth/change-password', passwordData);
       
-      if (response.data && response.data.success) {
+      if (response && response.data && response.data.success) {
         message.success('Đổi mật khẩu thành công!');
         return { success: true };
       } else {
-        throw new Error(response.data?.error || 'Change password failed');
+        throw new Error(response?.data?.error || 'Change password failed');
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.message || 'Đổi mật khẩu thất bại';
@@ -172,15 +225,15 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     try {
       setLoading(true);
-      const response = await api.put('/auth/profile', profileData);
+      const response = await axios.put('/api/auth/profile', profileData);
       
-      if (response.data && response.data.success) {
+      if (response && response.data && response.data.success) {
         // Update user data locally
         setUser(prev => ({ ...prev, ...profileData }));
         message.success('Cập nhật thông tin thành công!');
         return { success: true };
       } else {
-        throw new Error(response.data?.error || 'Update profile failed');
+        throw new Error(response?.data?.error || 'Update profile failed');
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.message || 'Cập nhật thông tin thất bại';
@@ -208,27 +261,19 @@ export const AuthProvider = ({ children }) => {
   const canProcessOrders = () => isCashier();
 
   const value = {
-    // State
     user,
     loading,
-    isAuthenticated: !!user,
     token,
-    
-    // Actions
     login,
     logout,
     register,
     changePassword,
     updateProfile,
     checkAuth,
-    
-    // Role utilities
     hasRole,
     isAdmin,
     isManager,
     isCashier,
-    
-    // Permission utilities
     canManageUsers,
     canManageProducts,
     canViewReports,
